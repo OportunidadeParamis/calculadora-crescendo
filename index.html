@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+  <html lang="pt-BR">
+  <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MAESTRIA · Calculadora Crescendo</title>
+<style>
+  :root{
+    color-scheme: dark;
+    --page:        #0a0910;
+    --surface-1:   #17141f;
+    --surface-2:   #1e1a29;
+    --border:      rgba(255,255,255,0.10);
+    --text-primary:   #ffffff;
+          --text-secondary: #c3c2b7;
+          --text-muted:     #898781;
+    --violet:      #9085e9;
+    --violet-deep: #4a3aa7;
+    --series-1:    #3987e5;   /* azul - referencia */
+    --series-2:    #d95926;   /* laranja - comparacao */
+          --good:        #0ca30c;
+    --warning:     #fab219;
+          --critical:    #d03b3b;
+          --gridline:    #2c2c2a;
+}
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+        background: radial-gradient(1200px 600px at 50% -10%, #1c1730 0%, var(--page) 55%);
+    color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    line-height:1.4;
+    padding: 32px 16px 80px;
+}
+  .wrap{ max-width: 980px; margin: 0 auto; }
+  .eyebrow{
+        display:flex; align-items:center; gap:8px;
+    font-size:12px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase;
+    color: var(--violet); margin-bottom: 10px;
+}
+  .eyebrow .dot{ width:7px; height:7px; border-radius:50%; background:var(--violet); }
+  h1{
+        font-family: Georgia, "Times New Roman", serif;
+    font-weight: 700;
+    font-size: clamp(28px, 4.5vw, 44px);
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+}
+  .subtitle{ color: var(--text-secondary); font-size:15px; margin: 0 0 32px; max-width: 640px;}
+  .card{
+        background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .card h2{
+        font-size: 13px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em;
+    color: var(--text-secondary); margin: 0 0 4px;
+}
+  .card .hint{ font-size: 13px; color: var(--text-muted); margin: 0 0 20px; }
+  /* fund grid */
+  .fund-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); gap: 12px; }
+  .fund-row{
+        display:flex; align-items:center; gap:10px;
+    background: var(--surface-2); border:1px solid var(--border); border-radius:12px;
+    padding: 10px 12px;
+}
+  .peso-badge{
+        flex: 0 0 auto; width:34px; height:34px; border-radius:9px;
+    display:flex; align-items:center; justify-content:center;
+    font-weight:800; font-size:13px; color:#0a0910;
+}
+  .peso-1{ background:#c9c6f3; } .peso-2{ background:#b3aeee; }
+    .peso-3{ background:#9d97e9; } .peso-4{ background:#7a72dd; }
+  .peso-5{ background:var(--violet); color:#0a0910; }
+  .fund-meta{ flex:1 1 auto; min-width:0; }
+  .fund-name{ font-size:13px; font-weight:600; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .fund-input-wrap{ position:relative; margin-top:2px; }
+  .fund-input-wrap span{ position:absolute; left:0; top:50%; transform:translateY(-50%); font-size:12px; color:var(--text-muted); }
+  input.money{
+    width:100%; background:transparent; border:none; border-bottom:1px solid var(--border);
+    color: var(--text-primary); font-size:14px; font-variant-numeric:tabular-nums;
+    padding: 2px 0 2px 22px; outline:none;
+  }
+  input.money:focus{ border-bottom-color: var(--violet); }
+  /* summary stat row */
+  .stat-row{ display:grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap:14px; margin-top:20px; }
+  .stat{
+        background: var(--surface-2); border:1px solid var(--border); border-radius:12px; padding:14px 16px;
+  }
+  .stat .label{ font-size:11px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin-bottom:6px; }
+  .stat .value{ font-size:22px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .badge{
+        display:inline-flex; align-items:center; gap:6px; padding:4px 12px; border-radius:999px;
+    font-size:13px; font-weight:700;
+  }
+  .badge-diamante{ background: rgba(144,133,233,0.18); color:#c3bdf7; border:1px solid rgba(144,133,233,0.4); }
+    .badge-ouro{ background: rgba(250,178,25,0.15); color:#fcd08a; border:1px solid rgba(250,178,25,0.4); }
+    .badge-prata{ background: rgba(195,194,183,0.15); color:#dedcd2; border:1px solid rgba(195,194,183,0.35); }
+    /* target + fund destino */
+  .target-grid{ display:grid; grid-template-columns: 1fr; gap:20px; }
+  @media(min-width:720px){ .target-grid{ grid-template-columns: 1fr 1fr; } }
+  .big-input-wrap{ position:relative; }
+  .big-input-wrap span{ position:absolute; left:16px; top:50%; transform:translateY(-50%); font-size:20px; color:var(--text-muted); }
+  input.money-big{
+        width:100%; background:var(--surface-2); border:1px solid var(--border); border-radius:12px;
+    color:var(--text-primary); font-size:24px; font-weight:700; font-variant-numeric:tabular-nums;
+    padding: 14px 14px 14px 48px; outline:none;
+}
+  input.money-big:focus{ border-color:var(--violet); }
+  .peso-chips{ display:flex; flex-wrap:wrap; gap:8px; }
+  .chip{
+        flex: 1 1 auto; min-width: 84px;
+    background: var(--surface-2); border:1px solid var(--border); border-radius:12px;
+    padding: 12px 10px; text-align:center; cursor:pointer; transition: all .15s ease;
+}
+  .chip:hover{ border-color: rgba(144,133,233,0.5); }
+  .chip.active{ background: linear-gradient(180deg, rgba(144,133,233,0.28), rgba(144,133,233,0.10)); border-color: var(--violet); }
+  .chip .n{ font-size:18px; font-weight:800; }
+  .chip .l{ font-size:10px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-top:2px;}
+  /* months */
+  .month-grid{ display:grid; grid-template-columns: repeat(6,1fr); gap:10px; align-items:end; margin-bottom: 8px;}
+  .month-col{ display:flex; flex-direction:column; align-items:center; gap:8px; }
+  .month-bar-wrap{ height:140px; width:100%; display:flex; align-items:flex-end; justify-content:center; background:var(--surface-2); border-radius:8px; border:1px solid var(--border); position:relative; overflow:hidden;}
+  .month-bar{ width:60%; background: linear-gradient(180deg, var(--violet), var(--violet-deep)); border-radius:6px 6px 0 0; transition: height .12s ease; }
+  .month-pct{ font-size:12px; font-weight:700; font-variant-numeric:tabular-nums; }
+  input.month-slider{ width:100%; accent-color: var(--violet); }
+  .month-label{ font-size:11px; color:var(--text-muted); text-transform:uppercase; }
+  .sum-indicator{ display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; margin-top:8px;}
+  .sum-indicator .swatch{ width:10px; height:10px; border-radius:50%; }
+  .lock-note{
+        margin-top:14px; display:flex; gap:10px; align-items:flex-start;
+    background: rgba(12,163,12,0.08); border:1px solid rgba(12,163,12,0.3); border-radius:10px; padding:12px 14px;
+    font-size:13px; color:#bfe9bf;
+    }
+  .lock-note b{ color:#eafcea; }
+        button.preset{
+          background: var(--surface-2); border:1px solid var(--border); color:var(--text-secondary);
+    border-radius: 999px; padding:8px 16px; font-size:12px; font-weight:600; cursor:pointer;
+    }
+  button.preset:hover{ border-color: var(--violet); color:var(--text-primary); }
+  /* result hero */
+  .hero-card{
+        background: linear-gradient(160deg, #241d3d 0%, #14101f 100%);
+    border: 1px solid rgba(144,133,233,0.35);
+    border-radius: 20px; padding: 32px; text-align:center; margin-bottom:20px;
+}
+  .hero-label{ font-size:13px; text-transform:uppercase; letter-spacing:0.1em; color:var(--violet); font-weight:700; margin-bottom:10px;}
+  .hero-value{ font-size: clamp(36px,7vw,64px); font-weight:800; font-variant-numeric:tabular-nums; }
+  .hero-sub{ color:var(--text-secondary); font-size:14px; margin-top:8px; }
+  /* comparison bars */
+  .compare{ margin-top:10px; }
+  .compare-row{ display:flex; gap:14px; }
+  .compare-col{ flex:1; display:flex; flex-direction:column; align-items:center; }
+  .compare-bar-wrap{ height:160px; width:100%; display:flex; align-items:flex-end; justify-content:center; margin:8px 0; }
+  .compare-bar{ width:70%; border-radius: 6px 6px 0 0; transition: height .15s ease; position:relative; }
+  .compare-bar.selected{ box-shadow: 0 0 0 2px var(--violet) inset; }
+  .compare-value{ font-size:12px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .compare-tag{ font-size:11px; color:var(--text-muted); text-transform:uppercase; }
+  .legend-row{ display:flex; gap:18px; margin-top:10px; flex-wrap:wrap; }
+  .legend-item{ display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-secondary); }
+  .legend-swatch{ width:10px; height:10px; border-radius:3px; }
+  footer{ text-align:center; color:var(--text-muted); font-size:12px; margin-top:40px; }
+  footer b{ color: var(--violet); letter-spacing:0.06em; }
+</style>
+  </head>
+  <body>
+  <div class="wrap">
+    <div class="eyebrow"><span class="dot"></span> MAESTRIA · CRESCENDO</div>
+    <h1>Quanto vale o seu esforço?</h1>
+    <p class="subtitle">Coloque o PL que você tem hoje em cada fundo, diga quanto acha que vai captar até 31/01/2027 e veja sua pontuação estimada no ranking Crescendo.</p>
+    <!-- STEP 1: PL ATUAL -->
+    <div class="card">
+      <h2>1. Seu PL hoje, fundo por fundo</h2>
+    <p class="hint">Cada fundo pesa diferente na pontuação. Preencha o que você tem em cada um (pode deixar 0 se não tiver).</p>
+      <div class="fund-grid" id="fundGrid"></div>
+      <div class="stat-row">
+        <div class="stat">
+          <div class="label">PL total hoje</div>
+          <div class="value" id="statPLTotal">R$ 0</div>
+        </div>
+        <div class="stat">
+          <div class="label">PL ponderado inicial</div>
+          <div class="value" id="statPLPond">R$ 0</div>
+        </div>
+        <div class="stat">
+          <div class="label">Sua categoria</div>
+          <div class="value"><span class="badge badge-prata" id="statCategoria">Prata</span></div>
+        </div>
+      </div>
+    </div>
+    <!-- STEP 2: META DE CAPTACAO -->
+    <div class="card">
+      <h2>2. Quanto você acha que vai captar</h2>
+      <p class="hint">Estimativa de captação líquida nova até o fim da campanha (31/01/2027) e em qual peso de fundo ela deve entrar.</p>
+      <div class="target-grid">
+        <div>
+          <div class="big-input-wrap">
+            <span>R$</span>
+            <input type="text" inputmode="numeric" class="money-big" id="inputCaptacao" value="10.000.000">
+          </div>
+        </div>
+        <div>
+          <div class="peso-chips" id="pesoChips"></div>
+        </div>
+      </div>
+    </div>
+    <!-- STEP 3: CURVA MENSAL -->
+    <div class="card">
+      <h2>3. Como pretende distribuir isso pelos meses</h2>
+      <p class="hint">Arraste para desenhar seu ritmo de captação (ago → jan). É só um plano de acompanhamento.</p>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <div class="sum-indicator" id="sumIndicator"><span class="swatch"></span><span id="sumText">Soma: 100%</span></div>
+        <button class="preset" id="btnCurveS">Aplicar curva S</button>
+    </div>
+    <div class="month-grid" id="monthGrid"></div>
+    <div class="lock-note">
+      🔒 <div><b>A pontuação do Crescendo não muda</b> não importa como você distribui a captação nos meses — só o total até 31/01/2027 conta. Essa curva é só para você acompanhar seu próprio ritmo.</div>
+      </div>
+    </div>
+    <!-- RESULTADO -->
+    <div class="hero-card">
+      <div class="hero-label">Sua pontuação estimada — Crescendo</div>
+    <div class="hero-value" id="heroPontos">+ R$ 0</div>
+      <div class="hero-sub" id="heroSub">PL ponderado final projetado: R$ 0</div>
+    </div>
+    <div class="card">
+      <h2>Nem todo real vale o mesmo</h2>
+      <p class="hint">Mesma captação total, aplicada em fundos de pesos diferentes:</p>
+      <div class="compare" id="compareChart"></div>
+      <div class="legend-row">
+        <div class="legend-item"><span class="legend-swatch" style="background:var(--violet)"></span> Peso escolhido por você</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:#3a3650"></span> Outros pesos (1× a 5×)</div>
+      </div>
+    </div>
+    <footer><b>MAESTRIA</b> · Calculadora Crescendo · Paramis Capital · valores ilustrativos, não substituem o ranking oficial do Power BI</footer>
+  </div>
+  <script>
+  const FUNDOS = [
+{name:"Legato Liquidez Ref DI", peso:1},
+  {name:"Tríade CIC CIM CP (HY)", peso:2},
+  {name:"Cadenza HY FIC FIM", peso:3},
+  {name:"Vivace Infra (Deb. Incent.)", peso:3},
+  {name:"Cadenza Prev XP", peso:4},
+  {name:"Tríade Prev XP", peso:4},
+  {name:"Tríade Prev Icatu", peso:4},
+  {name:"Cadenza Prev Icatu", peso:4},
+  {name:"Avantgarde Absoluto FIM", peso:5},
+  {name:"Avantgarde Multifatores FIA", peso:5},
+  {name:"PMIS11 / RIFF11", peso:5},
+  ];
+const MONTHS = ["ago","set","out","nov","dez","jan"];
+const DEFAULT_CURVE = [10,18,24,24,16,8]; // curva em S, soma 100
+const DEFAULT_PL = [6000000,4000000,3000000,2000000,3000000,2000000,1500000,1500000,3000000,2000000,3000000]; // exemplo pre-preenchido, soma 31M
+let pesoEscolhido = 4;
+let curve = DEFAULT_CURVE.slice();
+function brl(v, decimals=0){
+    return new Intl.NumberFormat('pt-BR', {style:'currency', currency:'BRL', maximumFractionDigits:decimals, minimumFractionDigits:decimals}).format(v||0);
+}
+function parseMoney(str){
+    const digits = (str||'').replace(/[^\d]/g,'');
+  return digits ? parseInt(digits,10) : 0;
+}
+function formatMoneyInput(el){
+    const v = parseMoney(el.value);
+  el.value = v ? new Intl.NumberFormat('pt-BR').format(v) : '';
+      return v;
+}
+// ---- Build fund grid ----
+const fundGrid = document.getElementById('fundGrid');
+FUNDOS.forEach((f, i)=>{
+    const row = document.createElement('div');
+  row.className = 'fund-row';
+  row.innerHTML = `
+        <div class="peso-badge peso-${f.peso}">${f.peso}×</div>
+        <div class="fund-meta">
+          <div class="fund-name" title="${f.name}">${f.name}</div>
+          <div class="fund-input-wrap">
+            <span>R$</span>
+            <input type="text" inputmode="numeric" class="money" data-idx="${i}" value="${new Intl.NumberFormat('pt-BR').format(DEFAULT_PL[i])}">
+          </div>
+        </div>`;
+  fundGrid.appendChild(row);
+});
+// ---- Build peso chips (fundo destino) ----
+const pesoChips = document.getElementById('pesoChips');
+const pesoExemplos = {1:"Legato", 2:"Tríade CIC", 3:"Cadenza HY / Vivace", 4:"Linha Prev", 5:"Avantgarde / PMIS11"};
+[1,2,3,4,5].forEach(p=>{
+    const chip = document.createElement('div');
+  chip.className = 'chip' + (p===pesoEscolhido ? ' active' : '');
+  chip.dataset.peso = p;
+  chip.innerHTML = `<div class="n">${p}×</div><div class="l">${pesoExemplos[p]}</div>`;
+  chip.addEventListener('click', ()=>{
+        pesoEscolhido = p;
+    document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+    chip.classList.add('active');
+    recompute();
+});
+  pesoChips.appendChild(chip);
+});
+// ---- Build month sliders ----
+const monthGrid = document.getElementById('monthGrid');
+MONTHS.forEach((m,i)=>{
+    const col = document.createElement('div');
+  col.className = 'month-col';
+  col.innerHTML = `
+        <div class="month-pct" id="monthPct${i}">${curve[i]}%</div>
+        <div class="month-bar-wrap"><div class="month-bar" id="monthBar${i}" style="height:${curve[i]}%"></div></div>
+        <input type="range" class="month-slider" min="0" max="100" value="${curve[i]}" data-idx="${i}">
+        <div class="month-label">${m}</div>`;
+  monthGrid.appendChild(col);
+});
+document.querySelectorAll('.month-slider').forEach(sl=>{
+    sl.addEventListener('input', (e)=>{
+      const idx = parseInt(e.target.dataset.idx,10);
+    curve[idx] = parseInt(e.target.value,10);
+    updateMonthUI();
+  });
+});
+document.getElementById('btnCurveS').addEventListener('click', ()=>{
+    curve = DEFAULT_CURVE.slice();
+  document.querySelectorAll('.month-slider').forEach((sl,i)=>{ sl.value = curve[i]; });
+  updateMonthUI();
+});
+function updateMonthUI(){
+    let sum = 0;
+  curve.forEach((v,i)=>{
+        sum += v;
+        document.getElementById('monthPct'+i).textContent = v+'%';
+    document.getElementById('monthBar'+i).style.height = Math.max(v,2)+'%';
+});
+  const sumText = document.getElementById('sumText');
+  const indicator = document.getElementById('sumIndicator');
+  if(sum === 100){
+    sumText.textContent = 'Soma: 100% ✓';
+    indicator.querySelector('.swatch').style.background = 'var(--good)';
+    sumText.style.color = '#bfe9bf';
+  } else {
+    sumText.textContent = `Soma: ${sum}% (ajuste para 100%)`;
+    indicator.querySelector('.swatch').style.background = 'var(--warning)';
+    sumText.style.color = '#fcd08a';
+                                  }
+  }
+// ---- Money input events ----
+document.getElementById('fundGrid').addEventListener('input', (e)=>{
+    if(e.target.classList.contains('money')){
+      recompute();
+}
+});
+document.getElementById('fundGrid').addEventListener('blur', (e)=>{
+    if(e.target.classList.contains('money')) formatMoneyInput(e.target);
+}, true);
+document.getElementById('inputCaptacao').addEventListener('input', recompute);
+document.getElementById('inputCaptacao').addEventListener('blur', (e)=> formatMoneyInput(e.target));
+function getFundPLs(){
+    return Array.from(document.querySelectorAll('#fundGrid .money')).map(inp=>parseMoney(inp.value));
+}
+function recompute(){
+    const pls = getFundPLs();
+  let plTotal = 0, plPond = 0;
+  pls.forEach((v,i)=>{ plTotal += v; plPond += v * FUNDOS[i].peso; });
+  document.getElementById('statPLTotal').textContent = brl(plTotal);
+  document.getElementById('statPLPond').textContent = brl(plPond);
+  const catEl = document.getElementById('statCategoria');
+  let categoria = 'Prata', catClass='badge-prata';
+  if(plTotal > 75000000){ categoria='Diamante'; catClass='badge-diamante'; }
+  else if(plTotal > 25000000){ categoria='Ouro'; catClass='badge-ouro'; }
+  catEl.textContent = categoria;
+  catEl.className = 'badge ' + catClass;
+  const captacao = parseMoney(document.getElementById('inputCaptacao').value);
+  const pontos = captacao * pesoEscolhido;
+  const plPondFinal = plPond + pontos;
+  document.getElementById('heroPontos').textContent = '+ ' + brl(pontos);
+  document.getElementById('heroSub').textContent = `PL ponderado final projetado: ${brl(plPondFinal)} (hoje: ${brl(plPond)})`;
+  // compare chart (rows with fixed px bar-wrap height, avoids flex % rounding issues)
+  const BAR_PX = 160;
+  const compare = document.getElementById('compareChart');
+  compare.innerHTML = `
+        <div class="compare-row" id="cmpValues"></div>
+        <div class="compare-row" id="cmpBars"></div>
+        <div class="compare-row" id="cmpTags"></div>`;
+  const cmpValues = document.getElementById('cmpValues');
+  const cmpBars = document.getElementById('cmpBars');
+  const cmpTags = document.getElementById('cmpTags');
+  const maxVal = captacao * 5 || 1;
+  [1,2,3,4,5].forEach(p=>{
+        const val = captacao * p;
+    const px = Math.max((val/maxVal)*BAR_PX, 4);
+    const isSelected = p === pesoEscolhido;
+    const vcol = document.createElement('div');
+    vcol.className = 'compare-col';
+    vcol.innerHTML = `<div class="compare-value">${brl(val)}</div>`;
+    cmpValues.appendChild(vcol);
+    const bcol = document.createElement('div');
+    bcol.className = 'compare-col';
+    bcol.innerHTML = `<div class="compare-bar-wrap"><div class="compare-bar ${isSelected?'selected':''}" style="height:${px}px; background:${isSelected ? 'var(--violet)' : '#3a3650'}"></div></div>`;
+    cmpBars.appendChild(bcol);
+    const tcol = document.createElement('div');
+    tcol.className = 'compare-col';
+    tcol.innerHTML = `<div class="compare-tag">${p}×</div>`;
+    cmpTags.appendChild(tcol);
+});
+}
+updateMonthUI();
+recompute();
+</script>
+  </body>
+  </html>
