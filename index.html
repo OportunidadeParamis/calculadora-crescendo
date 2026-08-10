@@ -1,355 +1,324 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MAESTRIA · Calculadora de Campanha</title>
-<style>
-  :root{
-    color-scheme: dark;
-    --page:        #0a0910;
-    --surface-1:   #17141f;
-    --surface-2:   #1e1a29;
-    --border:      rgba(255,255,255,0.10);
-    --text-primary:   #ffffff;
-    --text-secondary: #c3c2b7;
-    --text-muted:     #898781;
-    --violet:      #9085e9;
-    --violet-deep: #4a3aa7;
-    --series-1:    #3987e5;   /* azul - referencia */
-    --series-2:    #d95926;   /* laranja - comparacao */
-    --good:        #0ca30c;
-    --warning:     #fab219;
-    --critical:    #d03b3b;
-    --gridline:    #2c2c2a;
-  }
-  *{ box-sizing:border-box; }
-  html,body{ margin:0; padding:0; }
-  body{
-    background: radial-gradient(1200px 600px at 50% -10%, #1c1730 0%, var(--page) 55%);
-    color: var(--text-primary);
-    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-    line-height:1.4;
-    padding: 32px 16px 80px;
-  }
-  .wrap{ max-width: 980px; margin: 0 auto; }
-
-  .eyebrow{
-    display:flex; align-items:center; gap:8px;
-    font-size:12px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase;
-    color: var(--violet); margin-bottom: 10px;
-  }
-  .eyebrow .dot{ width:7px; height:7px; border-radius:50%; background:var(--violet); }
-
-  h1{
-    font-family: Georgia, "Times New Roman", serif;
-    font-weight: 700;
-    font-size: clamp(28px, 4.5vw, 44px);
-    margin: 0 0 6px;
-    letter-spacing: -0.01em;
-  }
-  .subtitle{ color: var(--text-secondary); font-size:15px; margin: 0 0 32px; max-width: 700px;}
-
-  .card{
-    background: var(--surface-1);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 24px;
-    margin-bottom: 20px;
-  }
-  .card h2{
-    font-size: 13px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em;
-    color: var(--text-secondary); margin: 0 0 4px;
-  }
-  .card .hint{ font-size: 13px; color: var(--text-muted); margin: 0 0 20px; }
-
-  /* fund grid */
-  .fund-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); gap: 12px; }
-  .fund-row{
-    display:flex; align-items:center; gap:10px;
-    background: var(--surface-2); border:1px solid var(--border); border-radius:12px;
-    padding: 10px 12px;
-  }
-  .peso-badge{
-    flex: 0 0 auto; width:34px; height:34px; border-radius:9px;
-    display:flex; align-items:center; justify-content:center;
-    font-weight:800; font-size:13px; color:#0a0910;
-  }
-  .peso-1{ background:#c9c6f3; } .peso-2{ background:#b3aeee; }
-  .peso-3{ background:#9d97e9; } .peso-4{ background:#7a72dd; }
-  .peso-5{ background:var(--violet); color:#0a0910; }
-
-  .fund-meta{ flex:1 1 auto; min-width:0; }
-  .fund-name{ font-size:13px; font-weight:600; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .fund-input-wrap{ position:relative; margin-top:2px; }
-  .fund-input-wrap span{ position:absolute; left:0; top:50%; transform:translateY(-50%); font-size:12px; color:var(--text-muted); }
-  input.money{
-    width:100%; background:transparent; border:none; border-bottom:1px solid var(--border);
-    color: var(--text-primary); font-size:14px; font-variant-numeric:tabular-nums;
-    padding: 2px 0 2px 22px; outline:none;
-  }
-  input.money:focus{ border-bottom-color: var(--violet); }
-  input.money.plano{ color: var(--violet); }
-
-  /* summary stat row */
-  .stat-row{ display:grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap:14px; margin-top:20px; }
-  .stat{
-    background: var(--surface-2); border:1px solid var(--border); border-radius:12px; padding:14px 16px;
-  }
-  .stat .label{ font-size:11px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin-bottom:6px; }
-  .stat .value{ font-size:22px; font-weight:700; font-variant-numeric:tabular-nums; }
-  .sum-indicator{ display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; margin-top:8px;}
-  .sum-indicator .swatch{ width:10px; height:10px; border-radius:50%; }
-  .unlock-note{
-    margin-top:14px; display:flex; gap:10px; align-items:flex-start;
-    background: rgba(250,178,25,0.08); border:1px solid rgba(250,178,25,0.3); border-radius:10px; padding:12px 14px;
-    font-size:13px; color:#fcd08a;
-  }
-  .unlock-note b{ color:#ffe6ad; }
-
-  .est-note{
-    margin-top:14px; display:flex; gap:10px; align-items:flex-start;
-    background: rgba(195,194,183,0.06); border:1px solid var(--border); border-radius:10px; padding:12px 14px;
-    font-size:12.5px; color:var(--text-secondary); text-align:left;
-  }
-  .est-note b{ color: var(--text-primary); }
-
-  button.preset{
-    background: var(--surface-2); border:1px solid var(--border); color:var(--text-secondary);
-    border-radius: 999px; padding:8px 16px; font-size:12px; font-weight:600; cursor:pointer;
-  }
-  button.preset:hover{ border-color: var(--violet); color:var(--text-primary); }
-
-  /* result hero */
-  .hero-card{
-    background: linear-gradient(160deg, #241d3d 0%, #14101f 100%);
-    border: 1px solid rgba(144,133,233,0.35);
-    border-radius: 20px; padding: 32px; text-align:center; margin-bottom:20px;
-  }
-  .hero-label{ font-size:13px; text-transform:uppercase; letter-spacing:0.1em; color:var(--violet); font-weight:700; margin-bottom:10px;}
-  .hero-value{ font-size: clamp(36px,7vw,64px); font-weight:800; font-variant-numeric:tabular-nums; }
-  .hero-sub{ color:var(--text-secondary); font-size:14px; margin-top:8px; }
-  .hero-delta{ font-size:15px; font-weight:700; margin-top:6px; }
-  .hero-delta.up{ color:#9be89b; }
-  .hero-delta.down{ color:#f0a8a8; }
-
-  /* generic comparison bars */
-  .compare{ margin-top:10px; }
-  .compare-row{ display:flex; gap:14px; }
-  .compare-col{ flex:1; display:flex; flex-direction:column; align-items:center; }
-  .compare-bar-wrap{ height:160px; width:100%; display:flex; align-items:flex-end; justify-content:center; margin:8px 0; }
-  .compare-bar{ width:70%; border-radius: 6px 6px 0 0; transition: height .15s ease; position:relative; }
-  .compare-value{ font-size:12px; font-weight:700; font-variant-numeric:tabular-nums; }
-  .compare-tag{ font-size:11px; color:var(--text-muted); text-transform:uppercase; max-width:110px; text-align:center;}
-
-  .legend-row{ display:flex; gap:18px; margin-top:10px; flex-wrap:wrap; }
-  .legend-item{ display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-secondary); }
-  .legend-swatch{ width:10px; height:10px; border-radius:3px; }
-
-  footer{ text-align:center; color:var(--text-muted); font-size:12px; margin-top:40px; }
-  footer b{ color: var(--violet); letter-spacing:0.06em; }
-</style>
-</head>
-<body>
-<div class="wrap">
-
-  <div class="eyebrow"><span class="dot"></span> MAESTRIA · CAMPANHA</div>
-  <h1>Quanto você cresce</h1>
-  <p class="subtitle">Cada campanha da Paramis tem sua própria regra para transformar PL ponderado em pontuação — algumas somam médias ao longo do tempo, outras somam totais. Esta calculadora não tenta reproduzir a regra de nenhuma campanha específica. Ela responde só a pergunta que dá pra responder com exatidão, sem depender de qual campanha está rodando: <b>se eu captar tanto nos fundos A, B e C, quanto cresce o meu PL ponderado?</b></p>
-
-  <!-- STEP 1: PL ATUAL -->
-  <div class="card">
-    <h2>1. Seu PL hoje, fundo por fundo</h2>
-    <p class="hint">Cada fundo pesa diferente na pontuação. Preencha o que você tem em cada um (pode deixar 0 se não tiver). <i>Os valores pré-preenchidos são um exemplo real: a posição da Paola Magalhães em 06/07/2026, validada célula a célula contra o modelo Power BI — não é a posição atual dela em nenhuma campanha, só um exemplo com números de verdade. Apague e coloque os seus.</i></p>
-    <div class="fund-grid" id="fundGrid"></div>
-
-    <div class="stat-row">
-      <div class="stat">
-        <div class="label">PL total hoje</div>
-        <div class="value" id="statPLTotal">R$ 0</div>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MAESTRIA · Calculadora de Campanha</title>
+  <style>
+      :root{
+            color-scheme: dark;
+            --page:        #0a0910;
+            --surface-1:   #17141f;
+            --surface-2:   #1e1a29;
+            --border:      rgba(255,255,255,0.10);
+            --text-primary:   #ffffff;
+            --text-secondary: #c3c2b7;
+            --text-muted:     #898781;
+            --violet:      #9085e9;
+            --violet-deep: #4a3aa7;
+            --series-1:    #3987e5;   /* azul - referencia */
+            --series-2:    #d95926;   /* laranja - comparacao */
+            --good:        #0ca30c;
+            --warning:     #fab219;
+            --critical:    #d03b3b;
+            --gridline:    #2c2c2a;
+      }
+      *{ box-sizing:border-box; }
+      html,body{ margin:0; padding:0; }
+      body{
+            background: radial-gradient(1200px 600px at 50% -10%, #1c1730 0%, var(--page) 55%);
+            color: var(--text-primary);
+            font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+            line-height:1.4;
+            padding: 32px 16px 80px;
+      }
+      .wrap{ max-width: 980px; margin: 0 auto; }
+      .eyebrow{
+            display:flex; align-items:center; gap:8px;
+            font-size:12px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase;
+            color: var(--violet); margin-bottom: 10px;
+      }
+      .eyebrow .dot{ width:7px; height:7px; border-radius:50%; background:var(--violet); }
+      h1{
+            font-family: Georgia, "Times New Roman", serif;
+            font-weight: 700;
+            font-size: clamp(28px, 4.5vw, 44px);
+            margin: 0 0 6px;
+            letter-spacing: -0.01em;
+      }
+      .subtitle{ color: var(--text-secondary); font-size:15px; margin: 0 0 32px; max-width: 700px;}
+      .card{
+            background: var(--surface-1);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+      }
+      .card h2{
+            font-size: 13px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em;
+            color: var(--text-secondary); margin: 0 0 4px;
+      }
+      .card .hint{ font-size: 13px; color: var(--text-muted); margin: 0 0 20px; }
+      /* fund grid */
+      .fund-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); gap: 12px; }
+      .fund-row{
+            display:flex; align-items:center; gap:10px;
+            background: var(--surface-2); border:1px solid var(--border); border-radius:12px;
+            padding: 10px 12px;
+      }
+      .peso-badge{
+            flex: 0 0 auto; width:34px; height:34px; border-radius:9px;
+            display:flex; align-items:center; justify-content:center;
+            font-weight:800; font-size:13px; color:#0a0910;
+      }
+      .peso-1{ background:#c9c6f3; } .peso-2{ background:#b3aeee; }
+      .peso-3{ background:#9d97e9; } .peso-4{ background:#7a72dd; }
+      .peso-5{ background:var(--violet); color:#0a0910; }
+      .fund-meta{ flex:1 1 auto; min-width:0; }
+      .fund-name{ font-size:13px; font-weight:600; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      .fund-input-wrap{ position:relative; margin-top:2px; }
+      .fund-input-wrap span{ position:absolute; left:0; top:50%; transform:translateY(-50%); font-size:12px; color:var(--text-muted); }
+      input.money{
+            width:100%; background:transparent; border:none; border-bottom:1px solid var(--border);
+            color: var(--text-primary); font-size:14px; font-variant-numeric:tabular-nums;
+            padding: 2px 0 2px 22px; outline:none;
+      }
+      input.money:focus{ border-bottom-color: var(--violet); }
+      input.money.plano{ color: var(--violet); }
+      /* summary stat row */
+      .stat-row{ display:grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap:14px; margin-top:20px; }
+      .stat{
+            background: var(--surface-2); border:1px solid var(--border); border-radius:12px; padding:14px 16px;
+      }
+      .stat .label{ font-size:11px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin-bottom:6px; }
+      .stat .value{ font-size:22px; font-weight:700; font-variant-numeric:tabular-nums; }
+      .sum-indicator{ display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; margin-top:8px;}
+      .sum-indicator .swatch{ width:10px; height:10px; border-radius:50%; }
+      .unlock-note{
+            margin-top:14px; display:flex; gap:10px; align-items:flex-start;
+            background: rgba(250,178,25,0.08); border:1px solid rgba(250,178,25,0.3); border-radius:10px; padding:12px 14px;
+            font-size:13px; color:#fcd08a;
+      }
+      .unlock-note b{ color:#ffe6ad; }
+      .est-note{
+            margin-top:14px; display:flex; gap:10px; align-items:flex-start;
+            background: rgba(195,194,183,0.06); border:1px solid var(--border); border-radius:10px; padding:12px 14px;
+            font-size:12.5px; color:var(--text-secondary); text-align:left;
+      }
+      .est-note b{ color: var(--text-primary); }
+      button.preset{
+            background: var(--surface-2); border:1px solid var(--border); color:var(--text-secondary);
+            border-radius: 999px; padding:8px 16px; font-size:12px; font-weight:600; cursor:pointer;
+      }
+      button.preset:hover{ border-color: var(--violet); color:var(--text-primary); }
+      /* result hero */
+      .hero-card{
+            background: linear-gradient(160deg, #241d3d 0%, #14101f 100%);
+            border: 1px solid rgba(144,133,233,0.35);
+            border-radius: 20px; padding: 32px; text-align:center; margin-bottom:20px;
+      }
+      .hero-label{ font-size:13px; text-transform:uppercase; letter-spacing:0.1em; color:var(--violet); font-weight:700; margin-bottom:10px;}
+      .hero-value{ font-size: clamp(36px,7vw,64px); font-weight:800; font-variant-numeric:tabular-nums; }
+      .hero-sub{ color:var(--text-secondary); font-size:14px; margin-top:8px; }
+      .hero-delta{ font-size:15px; font-weight:700; margin-top:6px; }
+      .hero-delta.up{ color:#9be89b; }
+      .hero-delta.down{ color:#f0a8a8; }
+      /* generic comparison bars */
+      .compare{ margin-top:10px; }
+      .compare-row{ display:flex; gap:14px; }
+      .compare-col{ flex:1; display:flex; flex-direction:column; align-items:center; }
+      .compare-bar-wrap{ height:160px; width:100%; display:flex; align-items:flex-end; justify-content:center; margin:8px 0; }
+      .compare-bar{ width:70%; border-radius: 6px 6px 0 0; transition: height .15s ease; position:relative; }
+      .compare-value{ font-size:12px; font-weight:700; font-variant-numeric:tabular-nums; }
+      .compare-tag{ font-size:11px; color:var(--text-muted); text-transform:uppercase; max-width:110px; text-align:center;}
+      .legend-row{ display:flex; gap:18px; margin-top:10px; flex-wrap:wrap; }
+      .legend-item{ display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-secondary); }
+      .legend-swatch{ width:10px; height:10px; border-radius:3px; }
+      footer{ text-align:center; color:var(--text-muted); font-size:12px; margin-top:40px; }
+      footer b{ color: var(--violet); letter-spacing:0.06em; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+        <div class="eyebrow"><span class="dot"></span>span> MAESTRIA · CAMPANHA</div>div>
+        <h1>Quanto você cresce</h1>
+      <p class="subtitle">Cada campanha da Paramis tem sua própria regra para transformar PL ponderado em pontuação — algumas somam médias ao longo do tempo, outras somam totais. Esta calculadora não tenta reproduzir a regra de nenhuma campanha específica. Ela responde só a pergunta que dá pra responder com exatidão, sem depender de qual campanha está rodando: <b>se eu captar tanto nos fundos A, B e C, quanto cresce o meu PL ponderado?</b></p>p>
+      <!-- STEP 1: PL ATUAL -->
+      <div class="card">
+          <h2>1. Seu PL hoje, fundo por fundo</h2>
+          <p class="hint">Cada fundo pesa diferente na pontuação. Preencha o que você tem em cada um (pode deixar 0 se não tiver). <i>Os valores pré-preenchidos são apenas um exemplo ilustrativo, com números reais de PL, validados internamente célula a célula — não representam a posição atual de nenhum assessor em nenhuma campanha, é só um exemplo com números de verdade. Apague e coloque os seus.</i></p>p>
+          <div class="fund-grid" id="fundGrid"></div>div>
+          <div class="stat-row">
+                <div class="stat">
+                        <div class="label">PL total hoje</div>div>
+                        <div class="value" id="statPLTotal">R$ 0</div>div>
+                </div>div>
+                <div class="stat">
+                        <div class="label">PL ponderado hoje</div>div>
+                        <div class="value" id="statPLPond">R$ 0</div>div>
+                </div>div>
+          </div>div>
+      </div>div>
+      <!-- STEP 2: CAPTACAO -->
+      <div class="card">
+          <h2>2. Quanto você pretende captar, fundo por fundo</h2>
+          <p class="hint">Pode colocar em quantos fundos quiser (um pouco em cada, ou tudo em um só) — cada real entra ponderado pelo peso do fundo.</p>p>
+          <div class="fund-grid" id="fundGridPlano"></div>div>
+          <div class="unlock-note">
+                ⚡ <div><b>Isso mostra quanto seu PL ponderado cresce com essa captação</b> — não a sua pontuação final em nenhuma campanha específica. Cada campanha (Virtuose, Crescendo ou outra) tem sua própria regra pra transformar esse crescimento em pontuação; consulte o PDF/ranking oficial da campanha em que você está participando para saber a sua real.</div>
+          </div>
       </div>
-      <div class="stat">
-        <div class="label">PL ponderado hoje</div>
-        <div class="value" id="statPLPond">R$ 0</div>
+      <!-- RESULTADO -->
+      <div class="hero-card">
+            <div class="hero-label">Seu PL Ponderado com essa captação</div>
+            <div class="hero-value" id="heroPontos">R$ 0</div>
+            <div class="hero-sub" id="heroSub">PL ponderado hoje: R$ 0 + captação ponderada: R$ 0</div>
+            <div class="hero-delta" id="heroDelta"></div>
+            <div class="est-note">📐 <div><b>Isso é quanto seu PL Ponderado cresce, não a sua pontuação final em nenhuma campanha.</b> Nenhuma média, nenhuma projeção de meses — é só o efeito direto e exato dessa captação sobre o seu PL ponderado. Use este número para entender o efeito de uma captação; a forma como cada campanha converte esse crescimento em pontuação/ranking está no PDF oficial de cada uma.</div></div>
       </div>
+      <div class="card">
+          <h2>Nem todo real vale o mesmo</h2>
+          <p class="hint">Se você captasse esse mesmo total, mas todo em um fundo de peso único, seu novo PL ponderado seria:</p>p>
+          <div class="compare" id="pesoCompareChart"></div>
+      </div>
+      <footer><b>MAESTRIA</b> · Calculadora de Campanha · Paramis Capital · valores ilustrativos e estimados, referem-se ao crescimento do PL ponderado, não à pontuação final de nenhuma campanha específica</footer>
     </div>
-  </div>
-
-  <!-- STEP 2: CAPTACAO -->
-  <div class="card">
-    <h2>2. Quanto você pretende captar, fundo por fundo</h2>
-    <p class="hint">Pode colocar em quantos fundos quiser (um pouco em cada, ou tudo em um só) — cada real entra ponderado pelo peso do fundo.</p>
-    <div class="fund-grid" id="fundGridPlano"></div>
-
-    <div class="unlock-note">
-      ⚡ <div><b>Isso mostra quanto seu PL ponderado cresce com essa captação</b> — não a sua pontuação final em nenhuma campanha específica. Cada campanha (Virtuose, Crescendo ou outra) tem sua própria regra pra transformar esse crescimento em pontuação; consulte o PDF/ranking oficial da campanha em que você está participando para saber a sua real.</div>
-    </div>
-  </div>
-
-  <!-- RESULTADO -->
-  <div class="hero-card">
-    <div class="hero-label">Seu PL Ponderado com essa captação</div>
-    <div class="hero-value" id="heroPontos">R$ 0</div>
-    <div class="hero-sub" id="heroSub">PL ponderado hoje: R$ 0 + captação ponderada: R$ 0</div>
-    <div class="hero-delta" id="heroDelta"></div>
-    <div class="est-note">📐 <div><b>Isso é quanto seu PL Ponderado cresce, não a sua pontuação final em nenhuma campanha.</b> Nenhuma média, nenhuma projeção de meses — é só o efeito direto e exato dessa captação sobre o seu PL ponderado. Use este número para entender o efeito de uma captação; a forma como cada campanha converte esse crescimento em pontuação/ranking está no PDF oficial de cada uma.</div></div>
-  </div>
-
-  <div class="card">
-    <h2>Nem todo real vale o mesmo</h2>
-    <p class="hint">Se você captasse esse mesmo total, mas todo em um fundo de peso único, seu novo PL ponderado seria:</p>
-    <div class="compare" id="pesoCompareChart"></div>
-  </div>
-
-  <footer><b>MAESTRIA</b> · Calculadora de Campanha · Paramis Capital · valores ilustrativos e estimados, referem-se ao crescimento do PL ponderado, não à pontuação final de nenhuma campanha específica</footer>
-</div>
-
-<script>
-const FUNDOS = [
-  {name:"Legato Liquidez Ref DI", peso:1},
-  {name:"Tríade CIC CIM CP (HY)", peso:2},
-  {name:"Cadenza HY FIC FIM", peso:3},
-  {name:"Vivace Infra (Deb. Incent.)", peso:3},
-  {name:"Cadenza Prev XP", peso:4},
-  {name:"Tríade Prev XP", peso:4},
-  {name:"Tríade Prev Icatu", peso:4},
-  {name:"Cadenza Prev Icatu", peso:4},
-  {name:"Avantgarde Absoluto FIM", peso:5},
-  {name:"Avantgarde Multifatores FIA", peso:5},
-  {name:"PMIS11 / RIFF11", peso:5},
-];
-// Exemplo com dados reais: posição da Paola Magalhães em 06/07/2026, validada contra o modelo Power BI
-// (Prova 1/2 do exercício de validação de 07/08/2026) — não é a posição atual dela em nenhuma campanha,
-// mas os valores são reais e a reconstrução bate exatamente com o total oficial.
-const DEFAULT_PL = [16589766,4961357,6542003,728251,933479,15156454,0,0,3436932,53960,7228390]; // soma 55.630.592, PL ponderado 166.279.386 (bate com o real)
-const DEFAULT_PLANO = [0,0,1500000,0,1000000,0,0,0,1500000,0,0]; // exemplo ilustrativo (não são planos reais de ninguém)
-
-function brl(v, decimals=0){
-  return new Intl.NumberFormat('pt-BR', {style:'currency', currency:'BRL', maximumFractionDigits:decimals, minimumFractionDigits:decimals}).format(v||0);
-}
-function parseMoney(str){
-  const digits = (str||'').replace(/[^\d]/g,'');
-  return digits ? parseInt(digits,10) : 0;
-}
-function formatMoneyInput(el){
-  const v = parseMoney(el.value);
-  el.value = v ? new Intl.NumberFormat('pt-BR').format(v) : '';
-  return v;
-}
-
-// ---- Build fund grid (STEP 1: PL hoje) ----
-const fundGrid = document.getElementById('fundGrid');
-FUNDOS.forEach((f, i)=>{
-  const row = document.createElement('div');
-  row.className = 'fund-row';
-  row.innerHTML = `
-    <div class="peso-badge peso-${f.peso}">${f.peso}×</div>
-    <div class="fund-meta">
-      <div class="fund-name" title="${f.name}">${f.name}</div>
-      <div class="fund-input-wrap">
-        <span>R$</span>
-        <input type="text" inputmode="numeric" class="money" data-idx="${i}" value="${new Intl.NumberFormat('pt-BR').format(DEFAULT_PL[i])}">
-      </div>
-    </div>`;
-  fundGrid.appendChild(row);
-});
-
-// ---- Build fund grid (STEP 2: captacao planejada) ----
-const fundGridPlano = document.getElementById('fundGridPlano');
-FUNDOS.forEach((f, i)=>{
-  const row = document.createElement('div');
-  row.className = 'fund-row';
-  row.innerHTML = `
-    <div class="peso-badge peso-${f.peso}">${f.peso}×</div>
-    <div class="fund-meta">
-      <div class="fund-name" title="${f.name}">${f.name}</div>
-      <div class="fund-input-wrap">
-        <span>R$</span>
-        <input type="text" inputmode="numeric" class="money plano" data-idx="${i}" value="${new Intl.NumberFormat('pt-BR').format(DEFAULT_PLANO[i])}">
-      </div>
-    </div>`;
-  fundGridPlano.appendChild(row);
-});
-
-// ---- Input events ----
-document.getElementById('fundGrid').addEventListener('input', (e)=>{
-  if(e.target.classList.contains('money')) recompute();
-});
-document.getElementById('fundGrid').addEventListener('blur', (e)=>{
-  if(e.target.classList.contains('money')) formatMoneyInput(e.target);
-}, true);
-
-document.getElementById('fundGridPlano').addEventListener('input', (e)=>{
-  if(e.target.classList.contains('money')) recompute();
-});
-document.getElementById('fundGridPlano').addEventListener('blur', (e)=>{
-  if(e.target.classList.contains('money')) formatMoneyInput(e.target);
-}, true);
-
-function getFundValues(containerId){
-  return Array.from(document.querySelectorAll('#'+containerId+' .money')).map(inp=>parseMoney(inp.value));
-}
-
-function drawBars(containerId, items, barPx){
-  const el = document.getElementById(containerId);
-  el.innerHTML = `
-    <div class="compare-row" id="${containerId}Values"></div>
-    <div class="compare-row" id="${containerId}Bars"></div>
-    <div class="compare-row" id="${containerId}Tags"></div>`;
-  const valuesEl = document.getElementById(containerId+'Values');
-  const barsEl = document.getElementById(containerId+'Bars');
-  const tagsEl = document.getElementById(containerId+'Tags');
-  const maxVal = Math.max(...items.map(i=>i.value), 1);
-  items.forEach(it=>{
-    const px = Math.max((it.value/maxVal)*barPx, 4);
-    const vcol = document.createElement('div');
-    vcol.className = 'compare-col';
-    vcol.innerHTML = `<div class="compare-value">${brl(it.value)}</div>`;
-    valuesEl.appendChild(vcol);
-
-    const bcol = document.createElement('div');
-    bcol.className = 'compare-col';
-    bcol.innerHTML = `<div class="compare-bar-wrap"><div class="compare-bar" style="height:${px}px; background:${it.color}"></div></div>`;
-    barsEl.appendChild(bcol);
-
-    const tcol = document.createElement('div');
-    tcol.className = 'compare-col';
-    tcol.innerHTML = `<div class="compare-tag">${it.label}</div>`;
-    tagsEl.appendChild(tcol);
-  });
-}
-
-function recompute(){
-  // ---- Step 1: PL hoje ----
-  const pls = getFundValues('fundGrid');
-  let plTotal = 0, plPond = 0;
-  pls.forEach((v,i)=>{ plTotal += v; plPond += v * FUNDOS[i].peso; });
-
-  document.getElementById('statPLTotal').textContent = brl(plTotal);
-  document.getElementById('statPLPond').textContent = brl(plPond);
-
-  // ---- Step 2: captacao planejada, fundo por fundo ----
-  const planos = getFundValues('fundGridPlano');
-  let deltaP = 0, captacaoTotal = 0;
-  planos.forEach((v,i)=>{ deltaP += v * FUNDOS[i].peso; captacaoTotal += v; });
-  const plPondNovo = plPond + deltaP;
-
-  document.getElementById('heroPontos').textContent = brl(plPondNovo);
-  document.getElementById('heroSub').textContent = `PL ponderado hoje: ${brl(plPond)} + captação ponderada: ${brl(deltaP)}`;
-  const deltaEl = document.getElementById('heroDelta');
-  const arrow = deltaP >= 0 ? '▲' : '▼';
-  deltaEl.textContent = `${arrow} ${brl(Math.abs(deltaP))} em relação ao seu PL ponderado hoje`;
-  deltaEl.className = 'hero-delta ' + (deltaP >= 0 ? 'up' : 'down');
-
-  // ---- Peso comparison chart: mesmo total, pesos 1x-5x ----
-  const pesoItems = [1,2,3,4,5].map(p=>{
-    const plPondNovoP = plPond + captacaoTotal*p;
-    return {label: p+'×', value: plPondNovoP, color: 'var(--violet)'};
-  });
-  drawBars('pesoCompareChart', pesoItems, 150);
-}
-
-recompute();
-</script>
-</body>
-</html>
+  <script>
+    const FUNDOS = [
+      {name:"Legato Liquidez Ref DI", peso:1},
+      {name:"Tríade CIC CIM CP (HY)", peso:2},
+      {name:"Cadenza HY FIC FIM", peso:3},
+      {name:"Vivace Infra (Deb. Incent.)", peso:3},
+      {name:"Cadenza Prev XP", peso:4},
+      {name:"Tríade Prev XP", peso:4},
+      {name:"Tríade Prev Icatu", peso:4},
+      {name:"Cadenza Prev Icatu", peso:4},
+      {name:"Avantgarde Absoluto FIM", peso:5},
+      {name:"Avantgarde Multifatores FIA", peso:5},
+      {name:"PMIS11 / RIFF11", peso:5},
+      ];
+    // Exemplo ilustrativo com dados reais de PL, validados internamente célula a célula
+    // (exercício interno de validação) — não representa a posição atual de nenhum assessor
+    // em nenhuma campanha, mas os valores são reais e a reconstrução bate exatamente com o total oficial.
+    const DEFAULT_PL = [16589766,4961357,6542003,728251,933479,15156454,0,0,3436932,53960,7228390]; // soma 55.630.592, PL ponderado 166.279.386 (bate com o real)
+    const DEFAULT_PLANO = [0,0,1500000,0,1000000,0,0,0,1500000,0,0]; // exemplo ilustrativo (não são planos reais de ninguém)
+    function brl(v, decimals=0){
+        return new Intl.NumberFormat('pt-BR', {style:'currency', currency:'BRL', maximumFractionDigits:decimals, minimumFractionDigits:decimals}).format(v||0);
+    }
+    function parseMoney(str){
+        const digits = (str||'').replace(/[^\d]/g,'');
+        return digits ? parseInt(digits,10) : 0;
+    }
+    function formatMoneyInput(el){
+        const v = parseMoney(el.value);
+        el.value = v ? new Intl.NumberFormat('pt-BR').format(v) : '';
+        return v;
+    }
+    // ---- Build fund grid (STEP 1: PL hoje) ----
+    const fundGrid = document.getElementById('fundGrid');
+    FUNDOS.forEach((f, i)=>{
+        const row = document.createElement('div');
+        row.className = 'fund-row';
+        row.innerHTML = `
+            <div class="peso-badge peso-${f.peso}">${f.peso}×</div>
+                <div class="fund-meta">
+                      <div class="fund-name" title="${f.name}">${f.name}</div>
+                            <div class="fund-input-wrap">
+                                    <span>R$</span>
+                                            <input type="text" inputmode="numeric" class="money" data-idx="${i}" value="${new Intl.NumberFormat('pt-BR').format(DEFAULT_PL[i])}">
+                                                  </div>
+                                                      </div>`;
+        fundGrid.appendChild(row);
+    });
+    // ---- Build fund grid (STEP 2: captacao planejada) ----
+    const fundGridPlano = document.getElementById('fundGridPlano');
+    FUNDOS.forEach((f, i)=>{
+        const row = document.createElement('div');
+        row.className = 'fund-row';
+        row.innerHTML = `
+            <div class="peso-badge peso-${f.peso}">${f.peso}×</div>
+                <div class="fund-meta">
+                      <div class="fund-name" title="${f.name}">${f.name}</div>
+                            <div class="fund-input-wrap">
+                                    <span>R$</span>
+                                            <input type="text" inputmode="numeric" class="money plano" data-idx="${i}" value="${new Intl.NumberFormat('pt-BR').format(DEFAULT_PLANO[i])}">
+                                                  </div>
+                                                      </div>`;
+        fundGridPlano.appendChild(row);
+    });
+    // ---- Input events ----
+    document.getElementById('fundGrid').addEventListener('input', (e)=>{
+        if(e.target.classList.contains('money')) recompute();
+    });
+    document.getElementById('fundGrid').addEventListener('blur', (e)=>{
+        if(e.target.classList.contains('money')) formatMoneyInput(e.target);
+    }, true);
+    document.getElementById('fundGridPlano').addEventListener('input', (e)=>{
+        if(e.target.classList.contains('money')) recompute();
+    });
+    document.getElementById('fundGridPlano').addEventListener('blur', (e)=>{
+        if(e.target.classList.contains('money')) formatMoneyInput(e.target);
+    }, true);
+    function getFundValues(containerId){
+        return Array.from(document.querySelectorAll('#'+containerId+' .money')).map(inp=>parseMoney(inp.value));
+    }
+    function drawBars(containerId, items, barPx){
+        const el = document.getElementById(containerId);
+        el.innerHTML = `
+            <div class="compare-row" id="${containerId}Values"></div>
+                <div class="compare-row" id="${containerId}Bars"></div>
+                    <div class="compare-row" id="${containerId}Tags"></div>`;
+        const valuesEl = document.getElementById(containerId+'Values');
+        const barsEl = document.getElementById(containerId+'Bars');
+        const tagsEl = document.getElementById(containerId+'Tags');
+        const maxVal = Math.max(...items.map(i=>i.value), 1);
+        items.forEach(it=>{
+              const px = Math.max((it.value/maxVal)*barPx, 4);
+              const vcol = document.createElement('div');
+              vcol.className = 'compare-col';
+              vcol.innerHTML = `<div class="compare-value">${brl(it.value)}</div>`;
+              valuesEl.appendChild(vcol);
+              const bcol = document.createElement('div');
+              bcol.className = 'compare-col';
+              bcol.innerHTML = `<div class="compare-bar-wrap"><div class="compare-bar" style="height:${px}px; background:${it.color}"></div></div>`;
+              barsEl.appendChild(bcol);
+              const tcol = document.createElement('div');
+              tcol.className = 'compare-col';
+              tcol.innerHTML = `<div class="compare-tag">${it.label}</div>`;
+              tagsEl.appendChild(tcol);
+        });
+    }
+    function recompute(){
+        // ---- Step 1: PL hoje ----
+        const pls = getFundValues('fundGrid');
+        let plTotal = 0, plPond = 0;
+        pls.forEach((v,i)=>{ plTotal += v; plPond += v * FUNDOS[i].peso; });
+        document.getElementById('statPLTotal').textContent = brl(plTotal);
+        document.getElementById('statPLPond').textContent = brl(plPond);
+        // ---- Step 2: captacao planejada, fundo por fundo ----
+        const planos = getFundValues('fundGridPlano');
+        let deltaP = 0, captacaoTotal = 0;
+        planos.forEach((v,i)=>{ deltaP += v * FUNDOS[i].peso; captacaoTotal += v; });
+        const plPondNovo = plPond + deltaP;
+        document.getElementById('heroPontos').textContent = brl(plPondNovo);
+        document.getElementById('heroSub').textContent = `PL ponderado hoje: ${brl(plPond)} + captação ponderada: ${brl(deltaP)}`;
+        const deltaEl = document.getElementById('heroDelta');
+        const arrow = deltaP >= 0 ? '▲' : '▼';
+        deltaEl.textContent = `${arrow} ${brl(Math.abs(deltaP))} em relação ao seu PL ponderado hoje`;
+        deltaEl.className = 'hero-delta ' + (deltaP >= 0 ? 'up' : 'down');
+        // ---- Peso comparison chart: mesmo total, pesos 1x-5x ----
+        const pesoItems = [1,2,3,4,5].map(p=>{
+              const plPondNovoP = plPond + captacaoTotal*p;
+              return {label: p+'×', value: plPondNovoP, color: 'var(--violet)'};
+        });
+        drawBars('pesoCompareChart', pesoItems, 150);
+    }
+    recompute();
+  </script>
+  </body>
+</html>html>
+  </script></footer></h2></b></div>
+      </div></i></b></h1>
+  </body>
+  </style></title>
+  </head>
