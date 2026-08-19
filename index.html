@@ -1,324 +1,925 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MAESTRIA · Calculadora de Campanha</title>
-  <style>
-      :root{
-            color-scheme: dark;
-            --page:        #0a0910;
-            --surface-1:   #17141f;
-            --surface-2:   #1e1a29;
-            --border:      rgba(255,255,255,0.10);
-            --text-primary:   #ffffff;
-            --text-secondary: #c3c2b7;
-            --text-muted:     #898781;
-            --violet:      #9085e9;
-            --violet-deep: #4a3aa7;
-            --series-1:    #3987e5;   /* azul - referencia */
-            --series-2:    #d95926;   /* laranja - comparacao */
-            --good:        #0ca30c;
-            --warning:     #fab219;
-            --critical:    #d03b3b;
-            --gridline:    #2c2c2a;
-      }
-      *{ box-sizing:border-box; }
-      html,body{ margin:0; padding:0; }
-      body{
-            background: radial-gradient(1200px 600px at 50% -10%, #1c1730 0%, var(--page) 55%);
-            color: var(--text-primary);
-            font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-            line-height:1.4;
-            padding: 32px 16px 80px;
-      }
-      .wrap{ max-width: 980px; margin: 0 auto; }
-      .eyebrow{
-            display:flex; align-items:center; gap:8px;
-            font-size:12px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase;
-            color: var(--violet); margin-bottom: 10px;
-      }
-      .eyebrow .dot{ width:7px; height:7px; border-radius:50%; background:var(--violet); }
-      h1{
-            font-family: Georgia, "Times New Roman", serif;
-            font-weight: 700;
-            font-size: clamp(28px, 4.5vw, 44px);
-            margin: 0 0 6px;
-            letter-spacing: -0.01em;
-      }
-      .subtitle{ color: var(--text-secondary); font-size:15px; margin: 0 0 32px; max-width: 700px;}
-      .card{
-            background: var(--surface-1);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 24px;
-            margin-bottom: 20px;
-      }
-      .card h2{
-            font-size: 13px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em;
-            color: var(--text-secondary); margin: 0 0 4px;
-      }
-      .card .hint{ font-size: 13px; color: var(--text-muted); margin: 0 0 20px; }
-      /* fund grid */
-      .fund-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); gap: 12px; }
-      .fund-row{
-            display:flex; align-items:center; gap:10px;
-            background: var(--surface-2); border:1px solid var(--border); border-radius:12px;
-            padding: 10px 12px;
-      }
-      .peso-badge{
-            flex: 0 0 auto; width:34px; height:34px; border-radius:9px;
-            display:flex; align-items:center; justify-content:center;
-            font-weight:800; font-size:13px; color:#0a0910;
-      }
-      .peso-1{ background:#c9c6f3; } .peso-2{ background:#b3aeee; }
-      .peso-3{ background:#9d97e9; } .peso-4{ background:#7a72dd; }
-      .peso-5{ background:var(--violet); color:#0a0910; }
-      .fund-meta{ flex:1 1 auto; min-width:0; }
-      .fund-name{ font-size:13px; font-weight:600; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-      .fund-input-wrap{ position:relative; margin-top:2px; }
-      .fund-input-wrap span{ position:absolute; left:0; top:50%; transform:translateY(-50%); font-size:12px; color:var(--text-muted); }
-      input.money{
-            width:100%; background:transparent; border:none; border-bottom:1px solid var(--border);
-            color: var(--text-primary); font-size:14px; font-variant-numeric:tabular-nums;
-            padding: 2px 0 2px 22px; outline:none;
-      }
-      input.money:focus{ border-bottom-color: var(--violet); }
-      input.money.plano{ color: var(--violet); }
-      /* summary stat row */
-      .stat-row{ display:grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap:14px; margin-top:20px; }
-      .stat{
-            background: var(--surface-2); border:1px solid var(--border); border-radius:12px; padding:14px 16px;
-      }
-      .stat .label{ font-size:11px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin-bottom:6px; }
-      .stat .value{ font-size:22px; font-weight:700; font-variant-numeric:tabular-nums; }
-      .sum-indicator{ display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; margin-top:8px;}
-      .sum-indicator .swatch{ width:10px; height:10px; border-radius:50%; }
-      .unlock-note{
-            margin-top:14px; display:flex; gap:10px; align-items:flex-start;
-            background: rgba(250,178,25,0.08); border:1px solid rgba(250,178,25,0.3); border-radius:10px; padding:12px 14px;
-            font-size:13px; color:#fcd08a;
-      }
-      .unlock-note b{ color:#ffe6ad; }
-      .est-note{
-            margin-top:14px; display:flex; gap:10px; align-items:flex-start;
-            background: rgba(195,194,183,0.06); border:1px solid var(--border); border-radius:10px; padding:12px 14px;
-            font-size:12.5px; color:var(--text-secondary); text-align:left;
-      }
-      .est-note b{ color: var(--text-primary); }
-      button.preset{
-            background: var(--surface-2); border:1px solid var(--border); color:var(--text-secondary);
-            border-radius: 999px; padding:8px 16px; font-size:12px; font-weight:600; cursor:pointer;
-      }
-      button.preset:hover{ border-color: var(--violet); color:var(--text-primary); }
-      /* result hero */
-      .hero-card{
-            background: linear-gradient(160deg, #241d3d 0%, #14101f 100%);
-            border: 1px solid rgba(144,133,233,0.35);
-            border-radius: 20px; padding: 32px; text-align:center; margin-bottom:20px;
-      }
-      .hero-label{ font-size:13px; text-transform:uppercase; letter-spacing:0.1em; color:var(--violet); font-weight:700; margin-bottom:10px;}
-      .hero-value{ font-size: clamp(36px,7vw,64px); font-weight:800; font-variant-numeric:tabular-nums; }
-      .hero-sub{ color:var(--text-secondary); font-size:14px; margin-top:8px; }
-      .hero-delta{ font-size:15px; font-weight:700; margin-top:6px; }
-      .hero-delta.up{ color:#9be89b; }
-      .hero-delta.down{ color:#f0a8a8; }
-      /* generic comparison bars */
-      .compare{ margin-top:10px; }
-      .compare-row{ display:flex; gap:14px; }
-      .compare-col{ flex:1; display:flex; flex-direction:column; align-items:center; }
-      .compare-bar-wrap{ height:160px; width:100%; display:flex; align-items:flex-end; justify-content:center; margin:8px 0; }
-      .compare-bar{ width:70%; border-radius: 6px 6px 0 0; transition: height .15s ease; position:relative; }
-      .compare-value{ font-size:12px; font-weight:700; font-variant-numeric:tabular-nums; }
-      .compare-tag{ font-size:11px; color:var(--text-muted); text-transform:uppercase; max-width:110px; text-align:center;}
-      .legend-row{ display:flex; gap:18px; margin-top:10px; flex-wrap:wrap; }
-      .legend-item{ display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-secondary); }
-      .legend-swatch{ width:10px; height:10px; border-radius:3px; }
-      footer{ text-align:center; color:var(--text-muted); font-size:12px; margin-top:40px; }
-      footer b{ color: var(--violet); letter-spacing:0.06em; }
-    </style>
-  </head>
-  <body>
-    <div class="wrap">
-        <div class="eyebrow"><span class="dot"></span>span> MAESTRIA · CAMPANHA</div>div>
-        <h1>Quanto você cresce</h1>
-      <p class="subtitle">Cada campanha da Paramis tem sua própria regra para transformar PL ponderado em pontuação — algumas somam médias ao longo do tempo, outras somam totais. Esta calculadora não tenta reproduzir a regra de nenhuma campanha específica. Ela responde só a pergunta que dá pra responder com exatidão, sem depender de qual campanha está rodando: <b>se eu captar tanto nos fundos A, B e C, quanto cresce o meu PL ponderado?</b></p>p>
-      <!-- STEP 1: PL ATUAL -->
-      <div class="card">
-          <h2>1. Seu PL hoje, fundo por fundo</h2>
-          <p class="hint">Cada fundo pesa diferente na pontuação. Preencha o que você tem em cada um (pode deixar 0 se não tiver). <i>Os valores pré-preenchidos são apenas um exemplo ilustrativo, com números reais de PL, validados internamente célula a célula — não representam a posição atual de nenhum assessor em nenhuma campanha, é só um exemplo com números de verdade. Apague e coloque os seus.</i></p>p>
-          <div class="fund-grid" id="fundGrid"></div>div>
-          <div class="stat-row">
-                <div class="stat">
-                        <div class="label">PL total hoje</div>div>
-                        <div class="value" id="statPLTotal">R$ 0</div>div>
-                </div>div>
-                <div class="stat">
-                        <div class="label">PL ponderado hoje</div>div>
-                        <div class="value" id="statPLPond">R$ 0</div>div>
-                </div>div>
-          </div>div>
-      </div>div>
-      <!-- STEP 2: CAPTACAO -->
-      <div class="card">
-          <h2>2. Quanto você pretende captar, fundo por fundo</h2>
-          <p class="hint">Pode colocar em quantos fundos quiser (um pouco em cada, ou tudo em um só) — cada real entra ponderado pelo peso do fundo.</p>p>
-          <div class="fund-grid" id="fundGridPlano"></div>div>
-          <div class="unlock-note">
-                ⚡ <div><b>Isso mostra quanto seu PL ponderado cresce com essa captação</b> — não a sua pontuação final em nenhuma campanha específica. Cada campanha (Virtuose, Crescendo ou outra) tem sua própria regra pra transformar esse crescimento em pontuação; consulte o PDF/ranking oficial da campanha em que você está participando para saber a sua real.</div>
-          </div>
-      </div>
-      <!-- RESULTADO -->
-      <div class="hero-card">
-            <div class="hero-label">Seu PL Ponderado com essa captação</div>
-            <div class="hero-value" id="heroPontos">R$ 0</div>
-            <div class="hero-sub" id="heroSub">PL ponderado hoje: R$ 0 + captação ponderada: R$ 0</div>
-            <div class="hero-delta" id="heroDelta"></div>
-            <div class="est-note">📐 <div><b>Isso é quanto seu PL Ponderado cresce, não a sua pontuação final em nenhuma campanha.</b> Nenhuma média, nenhuma projeção de meses — é só o efeito direto e exato dessa captação sobre o seu PL ponderado. Use este número para entender o efeito de uma captação; a forma como cada campanha converte esse crescimento em pontuação/ranking está no PDF oficial de cada uma.</div></div>
-      </div>
-      <div class="card">
-          <h2>Nem todo real vale o mesmo</h2>
-          <p class="hint">Se você captasse esse mesmo total, mas todo em um fundo de peso único, seu novo PL ponderado seria:</p>p>
-          <div class="compare" id="pesoCompareChart"></div>
-      </div>
-      <footer><b>MAESTRIA</b> · Calculadora de Campanha · Paramis Capital · valores ilustrativos e estimados, referem-se ao crescimento do PL ponderado, não à pontuação final de nenhuma campanha específica</footer>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora Maestria</title>
+<style>
+  :root{
+    color-scheme: dark;
+    --page:        #0a0910;
+    --surface-1:   #17141f;
+    --surface-2:   #1e1a29;
+    --border:      rgba(255,255,255,0.10);
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #898781;
+    --violet:      #9085e9;
+    --violet-deep: #4a3aa7;
+    --teal:        #4fc3b0;
+    --good:        #0ca30c;
+    --warning:     #fab219;
+    --critical:    #d03b3b;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background: radial-gradient(1200px 600px at 50% -10%, #1c1730 0%, var(--page) 55%);
+    color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    line-height:1.4;
+    padding: 32px 16px 80px;
+  }
+  .wrap{ max-width: 980px; margin: 0 auto; }
+  .eyebrow{
+    display:flex; align-items:center; gap:8px;
+    font-size:12px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase;
+    color: var(--violet); margin-bottom: 10px;
+  }
+  .eyebrow .dot{ width:7px; height:7px; border-radius:50%; background:var(--violet); }
+  h1{
+    font-family: Georgia, "Times New Roman", serif;
+    font-weight: 700;
+    font-size: clamp(26px, 4.2vw, 40px);
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+  }
+  .subtitle{ color: var(--text-secondary); font-size:15px; margin: 0 0 24px; max-width: 740px;}
+  /* screens (home + the two wizards) */
+  .screen{ display:none; }
+  .screen.active{ display:block; }
+  /* home screen ranking selector cards */
+  .ranking-select-grid{ display:grid; grid-template-columns: repeat(auto-fit,minmax(240px,1fr)); gap:18px; margin-top:8px; }
+  .ranking-card{
+    text-align:left; cursor:pointer; width:100%;
+    background: linear-gradient(160deg,#1e1a29 0%, #17141f 100%);
+    border:1px solid var(--border); border-radius:18px; padding:26px;
+    color:var(--text-primary); font-family:inherit;
+    transition: border-color .15s ease, transform .15s ease;
+  }
+  .ranking-card:hover{ border-color:var(--violet); transform:translateY(-2px); }
+  .ranking-card .tag{
+    display:inline-block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em;
+    padding:3px 10px; border-radius:999px; background:var(--surface-2); color:var(--violet); margin-bottom:14px;
+  }
+  .ranking-card h3{ margin:0 0 8px; font-size:19px; font-family:Georgia,"Times New Roman",serif; }
+  .ranking-card p{ margin:0 0 18px; font-size:13.5px; color:var(--text-secondary); }
+  .ranking-card .cta{ font-size:13px; font-weight:700; color:var(--violet); }
+  .ranking-card .cta::after{ content:" →"; }
+  /* wizard header / progress / nav */
+  .wiz-header{ display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:14px; margin-bottom:18px; }
+  .btn-back-home{ background:transparent; border:none; color:var(--text-muted); font-size:13px; cursor:pointer; padding:0; margin-bottom:10px; }
+  .btn-back-home:hover{ color:var(--violet); }
+  .wiz-title-block h2{ font-family:Georgia,"Times New Roman",serif; font-size:23px; margin:0 0 6px; }
+  .wiz-title-block p{ margin:0; font-size:13.5px; color:var(--text-secondary); max-width:620px; }
+  .wiz-progress{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .wiz-pill{ width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; background:var(--surface-2); color:var(--text-muted); border:1px solid var(--border); flex:0 0 auto; }
+  .wiz-pill.current{ background:var(--violet); color:#0a0910; border-color:var(--violet); }
+  .wiz-pill.done{ background:var(--violet-deep); color:#fff; border-color:var(--violet-deep); }
+  .wiz-pill-sep{ width:14px; height:1px; background:var(--border); flex:0 0 auto; }
+  .wiz-step{ display:none; }
+  .wiz-step.active{ display:block; }
+  .wiz-nav{ display:flex; justify-content:space-between; align-items:center; gap:12px; margin-top:4px; margin-bottom:34px; }
+  .btn-primary{
+    background: linear-gradient(135deg, var(--violet) 0%, var(--violet-deep) 100%);
+    color:#fff; border:none; border-radius:12px; padding:13px 26px; font-size:14.5px; font-weight:700;
+    cursor:pointer; box-shadow: 0 6px 18px rgba(144,133,233,0.25);
+  }
+  .btn-primary:hover{ filter:brightness(1.08); }
+  .btn-voltar{ background:transparent; border:1px solid var(--border); color:var(--text-secondary); border-radius:12px; padding:13px 22px; font-size:14px; font-weight:600; cursor:pointer; }
+  .btn-voltar:hover{ border-color:var(--violet); color:var(--text-primary); }
+  .btn-voltar.hidden{ visibility:hidden; }
+  .card{
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .card h2{
+    font-size: 13px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em;
+    color: var(--text-secondary); margin: 0 0 4px;
+  }
+  .card .hint{ font-size: 13px; color: var(--text-muted); margin: 0 0 20px; }
+  /* minimalist pulsing (!) info badge — replaces long caption paragraphs; click reveals a small popover */
+  .info-wrap{ position:relative; display:inline-block; margin-left:8px; vertical-align:middle; }
+  .info-badge{
+    width:20px; height:20px; border-radius:50%; border:none; padding:0;
+    background: var(--warning); color:#2b1a00; font-weight:800; font-size:12px; line-height:1;
+    display:inline-flex; align-items:center; justify-content:center; cursor:pointer;
+    animation: infoPulse 1.8s ease-in-out infinite;
+  }
+  .info-badge.seen{ animation:none; opacity:0.55; }
+  .info-badge:hover{ opacity:1; }
+  @keyframes infoPulse{
+    0%,100%{ box-shadow: 0 0 0 0 rgba(250,178,25,0.55); }
+    50%{ box-shadow: 0 0 0 7px rgba(250,178,25,0); }
+  }
+  .info-pop{
+    display:none; position:fixed; z-index:100;
+    width:280px; max-width:calc(100vw - 32px); background:var(--surface-2); border:1px solid var(--border);
+    border-radius:10px; padding:12px 14px; box-shadow:0 12px 28px rgba(0,0,0,0.4);
+    font-size:12.5px; font-weight:400; text-transform:none; letter-spacing:normal;
+    color:var(--text-secondary); text-align:left; line-height:1.5;
+  }
+  .info-pop.open{ display:block; }
+  .info-pop b{ color:var(--text-primary); }
+  /* fund grid */
+  .fund-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); gap: 12px; }
+  .fund-row{
+    display:flex; align-items:center; gap:10px;
+    background: var(--surface-2); border:1px solid var(--border); border-radius:12px;
+    padding: 10px 12px;
+  }
+  .peso-badge{
+    flex: 0 0 auto; width:34px; height:34px; border-radius:9px;
+    display:flex; align-items:center; justify-content:center;
+    font-weight:800; font-size:13px; color:#0a0910;
+  }
+  .peso-1{ background:#c9c6f3; } .peso-2{ background:#b3aeee; }
+  .peso-3{ background:#9d97e9; } .peso-4{ background:#7a72dd; }
+  .peso-5{ background:var(--violet); color:#0a0910; }
+  .fund-meta{ flex:1 1 auto; min-width:0; }
+  .fund-name{ font-size:13px; font-weight:600; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .fund-input-wrap{ position:relative; margin-top:2px; }
+  .fund-input-wrap span{ position:absolute; left:0; top:50%; transform:translateY(-50%); font-size:12px; color:var(--text-muted); }
+  input.money{
+    width:100%; background:transparent; border:none; border-bottom:1px solid var(--border);
+    color: var(--text-primary); font-size:14px; font-variant-numeric:tabular-nums;
+    padding: 2px 0 2px 22px; outline:none;
+  }
+  input.money:focus{ border-bottom-color: var(--violet); }
+  input.money.plano{ color: var(--violet); }
+  .field-row{ display:grid; grid-template-columns: repeat(auto-fit,minmax(200px,1fr)); gap:16px; margin-bottom: 4px; }
+  .field{ display:flex; flex-direction:column; gap:6px; }
+  .field label{ font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em; font-weight:600; }
+  .field input[type=date], .field input.big-money, .field input.big-number{
+    background: var(--surface-2); border:1px solid var(--border); border-radius:10px;
+    color: var(--text-primary); font-size:15px; padding:10px 12px; outline:none; font-variant-numeric:tabular-nums;
+  }
+  .field input:focus{ border-color: var(--violet); }
+  .field .derived{ font-size:12px; color:var(--text-muted); }
+  .field .derived b{ color:var(--text-secondary); }
+  /* summary stat row */
+  .stat-row{ display:grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap:14px; margin-top:20px; }
+  .stat{
+    background: var(--surface-2); border:1px solid var(--border); border-radius:12px; padding:14px 16px;
+  }
+  .stat .label{ font-size:11px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin-bottom:6px; }
+  .stat .value{ font-size:22px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .unlock-note{
+    margin-top:14px; display:flex; gap:10px; align-items:flex-start;
+    background: rgba(250,178,25,0.08); border:1px solid rgba(250,178,25,0.3); border-radius:10px; padding:12px 14px;
+    font-size:13px; color:#fcd08a;
+  }
+  .unlock-note b{ color:#ffe6ad; }
+  .est-note{
+    margin-top:14px; display:flex; gap:10px; align-items:flex-start;
+    background: rgba(195,194,183,0.06); border:1px solid var(--border); border-radius:10px; padding:12px 14px;
+    font-size:12.5px; color:var(--text-secondary); text-align:left;
+  }
+  .est-note b{ color: var(--text-primary); }
+  .est-note.teal{ background: rgba(79,195,176,0.08); border-color: rgba(79,195,176,0.3); }
+  /* result hero */
+  .hero-card{
+    background: linear-gradient(160deg, #241d3d 0%, #14101f 100%);
+    border: 1px solid rgba(144,133,233,0.35);
+    border-radius: 20px; padding: 32px; text-align:center; margin-bottom:20px;
+  }
+  .hero-label{ font-size:13px; text-transform:uppercase; letter-spacing:0.1em; color:var(--violet); font-weight:700; margin-bottom:10px;}
+  .hero-value{ font-size: clamp(34px,6.5vw,58px); font-weight:800; font-variant-numeric:tabular-nums; }
+  .hero-sub{ color:var(--text-secondary); font-size:14px; margin-top:8px; }
+  .hero-delta{ font-size:15px; font-weight:700; margin-top:6px; }
+  .hero-delta.up{ color:#9be89b; }
+  .hero-delta.down{ color:#f0a8a8; }
+  .compare{ margin-top:10px; }
+  .compare-row{ display:flex; gap:14px; }
+  .compare-col{ flex:1; display:flex; flex-direction:column; align-items:center; }
+  .compare-bar-wrap{ height:150px; width:100%; display:flex; align-items:flex-end; justify-content:center; margin:8px 0; }
+  .compare-bar{ width:70%; border-radius: 6px 6px 0 0; transition: height .15s ease; position:relative; }
+  .compare-value{ font-size:12px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .compare-tag{ font-size:11px; color:var(--text-muted); text-transform:uppercase; max-width:110px; text-align:center;}
+  /* month schedule + evolution tables */
+  .card-head-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:4px; }
+  .btn-ghost{ background:transparent; border:1px solid var(--border); color:var(--text-secondary); border-radius:8px; padding:7px 14px; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap; }
+  .btn-ghost:hover{ border-color:var(--violet); color:var(--text-primary); }
+  .month-table-wrap{ overflow-x:auto; }
+  .scroll-hint{ display:none; font-size:11px; color:var(--text-muted); margin-top:6px; }
+  @media (max-width: 640px){ .scroll-hint{ display:block; } }
+  .month-table{ width:100%; border-collapse:collapse; margin-top:10px; font-size:13px; min-width:560px; }
+  .month-table th{ text-align:right; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--text-muted); padding:6px 8px; border-bottom:1px solid var(--border); font-weight:600; }
+  .month-table th:first-child, .month-table td:first-child{ text-align:left; }
+  .month-table td{ padding:9px 8px; border-bottom:1px solid var(--border); font-variant-numeric:tabular-nums; text-align:right; color:var(--text-secondary); }
+  .month-table td.month-label{ color:var(--text-primary); font-weight:600; }
+  .month-table tfoot td{ font-weight:700; color:var(--text-primary); border-bottom:none; padding-top:10px; }
+  input.pct{ width:64px; background:var(--surface-2); border:1px solid var(--border); border-radius:7px; color:var(--text-primary); padding:6px 8px; text-align:right; font-variant-numeric:tabular-nums; font-size:13px; outline:none; }
+  input.pct:focus{ border-color:var(--violet); }
+  .pct-status{ font-size:12.5px; margin-top:10px; font-weight:600; }
+  .pct-status.ok{ color:#9be89b; }
+  .pct-status.warn{ color:var(--warning); }
+  .empty-note{ font-size:13px; color:var(--text-muted); padding:10px 2px; }
+  footer{ text-align:center; color:var(--text-muted); font-size:12px; margin-top:40px; }
+  footer b{ color: var(--violet); letter-spacing:0.06em; }
+  /* ---------- mobile ---------- */
+  @media (max-width: 640px){
+    body{ padding: 20px 14px 60px; }
+    .card{ padding:18px; }
+    .hero-card{ padding:22px 18px; }
+    .wiz-nav{ flex-direction: column-reverse; align-items:stretch; margin-bottom:24px; }
+    .wiz-nav button{ width:100%; text-align:center; }
+    .wiz-header{ margin-bottom:14px; }
+    .wiz-progress{ width:100%; justify-content:flex-start; }
+    .stat-row{ grid-template-columns: 1fr 1fr; }
+    .field-row{ grid-template-columns: 1fr; }
+  }
+  @media (max-width: 380px){
+    .stat-row{ grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">
+    <span class="dot"></span> MAESTRIA · CAMPANHA 2026
+    <span class="info-wrap">
+      <button type="button" class="info-badge" aria-label="Aviso importante">!</button>
+      <div class="info-pop">⚡ Os dois racionais desta calculadora refletem exatamente as medidas oficiais da campanha (Aumento de PL Ponderado / PL Médio Diário Ponderado), conferidas em 18–19/08/2026. Datas de campanha, pesos por fundo e a base de dias já decorridos mudam a cada ciclo — revise os campos antes de repassar o resultado a um assessor.</div>
+    </span>
+  </div>
+  <!-- =========================== HOME: escolha do ranking =========================== -->
+  <div class="screen active" id="screen-home">
+    <h1>Calculadora Maestria</h1>
+    <p class="subtitle">Escolha um ranking para simular.</p>
+    <div class="ranking-select-grid">
+      <button type="button" class="ranking-card" data-goto="aumento">
+        <span class="tag">Ranking 1</span>
+        <h3>Aumento de PL Ponderado</h3>
+        <p>Quanto uma nova captação aumenta seu placar até o fechamento.</p>
+        <span class="cta">Simular</span>
+      </button>
+      <button type="button" class="ranking-card" data-goto="virtuose">
+        <span class="tag">Ranking 2</span>
+        <h3>Virtuose · Média Diária Ponderada</h3>
+        <p>O efeito de uma captação mês a mês na sua média diária.</p>
+        <span class="cta">Simular</span>
+      </button>
     </div>
-  <script>
-    const FUNDOS = [
-      {name:"Legato Liquidez Ref DI", peso:1},
-      {name:"Tríade CIC CIM CP (HY)", peso:2},
-      {name:"Cadenza HY FIC FIM", peso:3},
-      {name:"Vivace Infra (Deb. Incent.)", peso:3},
-      {name:"Cadenza Prev XP", peso:4},
-      {name:"Tríade Prev XP", peso:4},
-      {name:"Tríade Prev Icatu", peso:4},
-      {name:"Cadenza Prev Icatu", peso:4},
-      {name:"Avantgarde Absoluto FIM", peso:5},
-      {name:"Avantgarde Multifatores FIA", peso:5},
-      {name:"PMIS11 / RIFF11", peso:5},
-      ];
-    // Exemplo ilustrativo com dados reais de PL, validados internamente célula a célula
-    // (exercício interno de validação) — não representa a posição atual de nenhum assessor
-    // em nenhuma campanha, mas os valores são reais e a reconstrução bate exatamente com o total oficial.
-    const DEFAULT_PL = [16589766,4961357,6542003,728251,933479,15156454,0,0,3436932,53960,7228390]; // soma 55.630.592, PL ponderado 166.279.386 (bate com o real)
-    const DEFAULT_PLANO = [0,0,1500000,0,1000000,0,0,0,1500000,0,0]; // exemplo ilustrativo (não são planos reais de ninguém)
-    function brl(v, decimals=0){
-        return new Intl.NumberFormat('pt-BR', {style:'currency', currency:'BRL', maximumFractionDigits:decimals, minimumFractionDigits:decimals}).format(v||0);
+  </div>
+  <!-- =========================== WIZARD: AUMENTO DE PL PONDERADO =========================== -->
+  <div class="screen" id="screen-aumento">
+    <div class="wiz-header">
+      <div class="wiz-title-block">
+        <button type="button" class="btn-back-home" data-home>← Voltar ao início</button>
+        <h2>Aumento de PL Ponderado
+          <span class="info-wrap">
+            <button type="button" class="info-badge" aria-label="Como funciona esse ranking">!</button>
+            <div class="info-pop">Esse ranking compara duas fotos do seu PL ponderado — a da largada e a de hoje. Quanto maior a diferença, melhor sua colocação. Vamos simular juntos quanto uma nova captação pode empurrar esse número para cima.</div>
+          </span>
+        </h2>
+      </div>
+      <div class="wiz-progress" id="aumento-progress"></div>
+    </div>
+    <div class="wiz-step" data-step="linha">
+      <div class="card">
+        <h2>Datas da campanha</h2>
+        <div class="field-row">
+          <div class="field">
+            <label>Data de largada</label>
+            <input type="date" id="a-dataLargada" value="2026-07-31">
+          </div>
+          <div class="field">
+            <label>Data de fechamento</label>
+            <input type="date" id="a-dataFechamento" value="2026-08-12">
+          </div>
+          <div class="field">
+            <span class="derived">Duração: <b id="a-diasCorridos">–</b> dias corridos</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="wiz-step" data-step="situacao">
+      <div class="card">
+        <h2>Seu ponto de partida
+          <span class="info-wrap">
+            <button type="button" class="info-badge" aria-label="Onde pegar esses números">!</button>
+            <div class="info-pop">Pegue esses dois números direto no ranking oficial (ou some você mesmo: PL de cada fundo × peso do fundo, nas duas datas).</div>
+          </span>
+        </h2>
+        <div class="field-row">
+          <div class="field">
+            <label>PL ponderado na largada</label>
+            <input type="text" inputmode="numeric" class="big-money" id="a-plLargada" value="0">
+          </div>
+          <div class="field">
+            <label>PL ponderado no fechamento (hoje)</label>
+            <input type="text" inputmode="numeric" class="big-money" id="a-plHoje" value="0">
+          </div>
+        </div>
+        <div class="stat-row">
+          <div class="stat">
+            <div class="label">Aumento de PL Ponderado atual</div>
+            <div class="value" id="a-statAumentoAtual">R$ 0</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="wiz-step" data-step="captacao">
+      <div class="card">
+        <h2>Quanto você pretende captar agora?
+          <span class="info-wrap">
+            <button type="button" class="info-badge" aria-label="Como isso entra no cálculo">!</button>
+            <div class="info-pop">Essa captação entra como dinheiro novo antes do fechamento — e cada real pesa diferente dependendo do fundo. Comece pelos fundos de maior peso: eles rendem mais pontos por real captado.</div>
+          </span>
+        </h2>
+        <div class="fund-grid" id="a-fundGridPlano"></div>
+      </div>
+    </div>
+    <div class="wiz-step" data-step="resultado">
+      <div class="hero-card">
+        <div class="hero-label">Aumento de PL Ponderado projetado</div>
+        <div class="hero-value" id="a-heroValor">R$ 0</div>
+        <div class="hero-sub" id="a-heroSub">Aumento atual: R$ 0 + captação ponderada: R$ 0</div>
+        <div class="hero-delta" id="a-heroDelta"></div>
+      </div>
+      <div class="card">
+        <h2>Nem todo real vale o mesmo
+          <span class="info-wrap">
+            <button type="button" class="info-badge" aria-label="Como ler esse comparativo">!</button>
+            <div class="info-pop">Se você captasse esse mesmo total, mas todo em um fundo de peso único, seu aumento projetado seria:</div>
+          </span>
+        </h2>
+        <div class="compare" id="a-pesoCompareChart"></div>
+      </div>
+    </div>
+    <div class="wiz-nav">
+      <button type="button" class="btn-voltar" id="aumento-btnBack">← Voltar</button>
+      <button type="button" class="btn-primary" id="aumento-btnNext">Avançar →</button>
+    </div>
+  </div>
+  <!-- =========================== WIZARD: VIRTUOSE — MÉDIA DIÁRIA PONDERADA =========================== -->
+  <div class="screen" id="screen-virtuose">
+    <div class="wiz-header">
+      <div class="wiz-title-block">
+        <button type="button" class="btn-back-home" data-home>← Voltar ao início</button>
+        <h2>Virtuose · Média Diária Ponderada
+          <span class="info-wrap">
+            <button type="button" class="info-badge" aria-label="Como funciona esse ranking">!</button>
+            <div class="info-pop">Esse ranking soma o PL ponderado de cada dia com posição carregada, desde a largada até hoje, e divide pelo número de dias. Uma captação nova só entra na média a partir do mês em que ela acontece de fato — ela dilui a média pelos dias que faltam, não soma de uma vez só. Vamos montar essa simulação em algumas etapas.</div>
+          </span>
+        </h2>
+      </div>
+      <div class="wiz-progress" id="virtuose-progress"></div>
+    </div>
+    <div class="wiz-step" data-step="linha">
+      <div class="card">
+        <h2>Linha do tempo da campanha
+          <span class="info-wrap">
+            <button type="button" class="info-badge" aria-label="Como contamos os dias">!</button>
+            <div class="info-pop">📐 <b>Dias com posição já decorridos</b> vem do modelo (contagem de datas da base entre a largada e hoje). Os meses futuros usam <b>dias úteis reais</b> de cada mês (seg–sex, já descontando feriados do calendário ANBIMA até 25/12/2027) multiplicados por essa mesma cadência — a base só registra posição em dia útil de mercado, então isso é bem mais preciso do que usar dias corridos. Depois de 25/12/2027 os feriados deixam de ser descontados automaticamente; atualize a lista se a campanha for até lá.</div>
+          </span>
+        </h2>
+        <div class="field-row">
+          <div class="field">
+            <label>Data de largada</label>
+            <input type="date" id="v-dataLargada" value="2026-07-31">
+          </div>
+          <div class="field">
+            <label>Data vigente (hoje)</label>
+            <input type="date" id="v-dataVigente" value="2026-08-12">
+          </div>
+          <div class="field">
+            <label>Fim oficial da campanha</label>
+            <input type="date" id="v-dataFinal" value="2026-12-31">
+          </div>
+        </div>
+        <div class="field-row" style="margin-top:14px;">
+          <div class="field">
+            <label>Dias com posição já decorridos</label>
+            <input type="text" inputmode="numeric" class="big-number" id="v-diasDecorridos" value="9">
+          </div>
+          <div class="field">
+            <span class="derived"><b id="v-diasCorridosDecorridos">–</b> dias úteis decorridos · cadência <b id="v-cadencia">–</b></span>
+          </div>
+        </div>
+        <div class="stat-row">
+          <div class="stat">
+            <div class="label">Dias restantes estimados (até o fim)</div>
+            <div class="value" id="v-statDiasRestantes">0</div>
+          </div>
+          <div class="stat">
+            <div class="label">Total de dias na média projetada</div>
+            <div class="value" id="v-statDiasTotais">0</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="wiz-step" data-step="situacao">
+      <div class="card">
+        <h2>Sua situação hoje
+          <span class="info-wrap">
+            <button type="button" class="info-badge" aria-label="O que entra aqui">!</button>
+            <div class="info-pop">O PL de hoje é a base que continua contando em todo dia futuro (a menos que você resgate) — e a média atual é o ponto de partida da diluição. Pegue os dois direto no ranking Virtuose oficial.</div>
+          </span>
+        </h2>
+        <div class="fund-grid" id="v-fundGridHoje"></div>
+        <div class="stat-row">
+          <div class="stat">
+            <div class="label">PL ponderado hoje</div>
+            <div class="value" id="v-statPLHoje">R$ 0</div>
+          </div>
+          <div class="stat">
+            <div class="label">PL médio diário ponderado atual</div>
+            <div class="value"><input type="text" inputmode="numeric" class="big-money" id="v-mediaAtual" value="0" style="font-size:22px; font-weight:700; width:100%; border:none; background:transparent; padding:0;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="wiz-step" data-step="captacao">
+      <div class="card">
+        <h2>Quanto pretende captar até o fim da campanha?
+          <span class="info-wrap">
+            <button type="button" class="info-badge" aria-label="O que entra aqui">!</button>
+            <div class="info-pop">É a captação nova prevista para toda a campanha, não o saldo final — some ao que você já tem no passo anterior. Comece pelos fundos de maior peso. No próximo passo você distribui esse total mês a mês.</div>
+          </span>
+        </h2>
+        <div class="fund-grid" id="v-fundGridPlano"></div>
+        <div class="stat-row">
+          <div class="stat">
+            <div class="label">Captação ponderada total planejada</div>
+            <div class="value" id="v-statCaptacaoTotal">R$ 0</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="wiz-step" data-step="distribuicao">
+      <div class="card">
+        <h2>Como essa captação se distribui mês a mês
+          <span class="info-wrap">
+            <button type="button" class="info-badge" aria-label="Como preencher essa tabela">!</button>
+            <div class="info-pop">Nem toda campanha capta de forma linear — ajuste o % que você acha que vai captar em cada mês (ex.: 20% no mês 1, 30% no mês 2...). A captação de um mês já entra na média a partir do dia 1 daquele mês.</div>
+          </span>
+        </h2>
+        <div class="card-head-row">
+          <span></span>
+          <button type="button" class="btn-ghost" id="v-btnDistribuirIgual">Distribuir igualmente</button>
+        </div>
+        <div class="month-table-wrap">
+          <table class="month-table" id="v-monthTable">
+            <thead>
+              <tr><th>Mês</th><th>Dias úteis</th><th>Dias com posição (estimado)</th><th>% da captação</th><th>Captação do mês</th><th>Acumulado até o fim do mês</th></tr>
+            </thead>
+            <tbody id="v-monthRows"></tbody>
+            <tfoot><tr><td>Total</td><td></td><td id="v-monthTotalDias">0</td><td id="v-monthTotalPct">0%</td><td id="v-monthTotalCaptacao">R$ 0</td><td></td></tr></tfoot>
+          </table>
+        </div>
+        <div class="scroll-hint">deslize para o lado para ver todas as colunas →</div>
+        <div class="pct-status" id="v-pctStatus"></div>
+      </div>
+    </div>
+    <div class="wiz-step" data-step="resultado">
+      <div class="hero-card">
+        <div class="hero-label">PL Médio Diário Ponderado projetado</div>
+        <div class="hero-value" id="v-heroValor">R$ 0</div>
+        <div class="hero-sub" id="v-heroSub">–</div>
+        <div class="hero-delta" id="v-heroDelta"></div>
+      </div>
+      <div class="card">
+        <h2>Evolução da média mês a mês
+          <span class="info-wrap">
+            <button type="button" class="info-badge" aria-label="Como ler essa tabela">!</button>
+            <div class="info-pop">Assim dá pra ver o efeito da diluição: quanto mais cedo a captação acontece, mais tempo ela tem pra puxar a média pra cima.</div>
+          </span>
+        </h2>
+        <div class="month-table-wrap">
+          <table class="month-table" id="v-evolTable">
+            <thead>
+              <tr><th>Mês</th><th>PL diário assumido no mês</th><th>Dias com posição</th><th>Média acumulada até o fim do mês</th></tr>
+            </thead>
+            <tbody id="v-evolRows"></tbody>
+          </table>
+        </div>
+        <div class="scroll-hint">deslize para o lado para ver todas as colunas →</div>
+      </div>
+    </div>
+    <div class="wiz-nav">
+      <button type="button" class="btn-voltar" id="virtuose-btnBack">← Voltar</button>
+      <button type="button" class="btn-primary" id="virtuose-btnNext">Avançar →</button>
+    </div>
+  </div>
+  <footer>Calculadora Maestria · valores ilustrativos, calculados a partir dos números que você inserir — confirme sempre a pontuação oficial do ranking</footer>
+</div>
+<script>
+// Pesos conferidos em 'Base Diversificação'[Valor Ponderado] no modelo "Power BI Campanhas - 2026 - Oficial" (18/08/2026)
+// Ordenado do MAIOR peso para o menor, de propósito: os fundos de maior peso aparecem primeiro em
+// toda grade, para induzir visualmente o assessor a captar neles primeiro.
+const FUNDOS = [
+  {name:"Cadenza Prev Icatu", ativo:"Icatu Cadenza Prev", peso:5},
+  {name:"Avantgarde Absoluto FIM", ativo:"Avantgarde Multifatores Absoluto FIM", peso:5},
+  {name:"Avantgarde Multifatores FIA", ativo:"Avantgarde Multifatores FIF FIA RL", peso:5},
+  {name:"PMIS11", ativo:"PMIS11", peso:5},
+  {name:"RIFF11", ativo:"RIFF11", peso:5},
+  {name:"Cadenza Prev XP", ativo:"Cadenza Prev FIC FIM CP RL", peso:4},
+  {name:"Tríade Prev XP", ativo:"Tríade Prev FIC FIM CP RL", peso:4},
+  {name:"Tríade Prev Icatu", ativo:"Icatu Tríade Prev", peso:4},
+  {name:"Cadenza High Yield FIF", ativo:"Cadenza High Yield IQ FIF", peso:3},
+  {name:"Vivace Infra (Deb. Incentivada)", ativo:"Vivace CIC CI RF Infraestrutura Resp Limitada", peso:3},
+  {name:"Tríade CIC Classes FIM CP (HY)", ativo:"Tríade CIC Classes FIM CP Resp Limitada", peso:2},
+  {name:"Legato Liquidez Ref DI", ativo:"Legato Liquidez Classe Investimento RF Referenciada DI RL", peso:1},
+];
+function brl(v, decimals=0){
+  return new Intl.NumberFormat('pt-BR', {style:'currency', currency:'BRL', maximumFractionDigits:decimals, minimumFractionDigits:decimals}).format(v||0);
+}
+function parseMoney(str){
+  // Aceita tanto "182.136" (sem centavos, digitado à mão) quanto "182.136,90" (colado
+  // direto do Power BI, com centavos) — sem isso, um valor colado com vírgula decimal
+  // era lido como dígitos soltos e inflava o número em ~100x.
+  let s = (str||'').trim();
+  if (!s) return 0;
+  s = s.replace(/\./g,'').replace(',','.').replace(/[^\d.-]/g,'');
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : Math.round(n);
+}
+function formatMoneyInput(el){
+  const v = parseMoney(el.value);
+  el.value = v ? new Intl.NumberFormat('pt-BR').format(v) : '';
+  return v;
+}
+function parseNum(str){ const n = parseInt((str||'').replace(/[^\d]/g,''),10); return isNaN(n)?0:n; }
+function daysBetween(iso1, iso2){
+  const d1 = new Date(iso1+'T00:00:00Z');
+  const d2 = new Date(iso2+'T00:00:00Z');
+  return Math.round((d2-d1)/86400000);
+}
+// Feriados nacionais/mercado (calendário ANBIMA, arquivo enviado pelo usuário em 19/08/2026 —
+// conferido: bate exatamente com o "dias úteis s/ feriados" calculado na planilha para 12/08/2026–
+// 31/01/2027, 117 dias). Cobre até 25/12/2027; datas de feriado que já caem em sábado/domingo
+// estão incluídas mas não têm efeito (já são descontadas como fim de semana).
+const FERIADOS_ANBIMA = new Set([
+  '2026-09-07','2026-10-12','2026-11-02','2026-11-15','2026-11-20','2026-12-25',
+  '2027-01-01','2027-02-08','2027-02-09','2027-03-26','2027-04-21','2027-05-01',
+  '2027-05-27','2027-09-07','2027-10-12','2027-11-02','2027-11-15','2027-11-20','2027-12-25',
+]);
+// Conta dias ÚTEIS (seg–sex, excluindo feriados do calendário ANBIMA acima) no intervalo
+// [inicioISO, fimISO], incluindo as duas pontas. A base do Power BI só carrega posição em dia
+// útil de mercado (conferimos: na janela 31/07–12/08/2026, os 9 "dias com posição" batem
+// exatamente com os 9 dias úteis do período, zero fim de semana) — por isso estimar os meses
+// futuros em cima de dias corridos (incluindo sábado/domingo) subestimava a cadência real, e por
+// isso os feriados de mercado também precisam ser descontados, não só o fim de semana. Fora do
+// intervalo coberto pelo calendário acima (após 25/12/2027), feriados deixam de ser descontados
+// automaticamente — a cadência observada absorve isso de forma aproximada, mas vale atualizar a
+// lista de feriados se a campanha for até lá.
+function businessDaysInRange(inicioISO, fimISO){
+  if(!inicioISO || !fimISO) return 0;
+  const cur = new Date(inicioISO+'T00:00:00Z');
+  const fim = new Date(fimISO+'T00:00:00Z');
+  let count = 0;
+  while(cur <= fim){
+    const wd = cur.getUTCDay(); // 0=dom .. 6=sáb
+    const iso = cur.toISOString().slice(0,10);
+    if(wd!==0 && wd!==6 && !FERIADOS_ANBIMA.has(iso)) count++;
+    cur.setUTCDate(cur.getUTCDate()+1);
+  }
+  return count;
+}
+// ---------- Fund grid builder (reusado nas 3 grades) ----------
+function buildFundGrid(containerId, defaults, planoClass){
+  const el = document.getElementById(containerId);
+  FUNDOS.forEach((f,i)=>{
+    const row = document.createElement('div');
+    row.className = 'fund-row';
+    row.innerHTML = `
+      <div class="peso-badge peso-${f.peso}">${f.peso}×</div>
+      <div class="fund-meta">
+        <div class="fund-name" title="${f.ativo}">${f.name}</div>
+        <div class="fund-input-wrap">
+          <span>R$</span>
+          <input type="text" inputmode="numeric" class="money ${planoClass||''}" data-idx="${i}" value="${new Intl.NumberFormat('pt-BR').format(defaults[i]||0)}">
+        </div>
+      </div>`;
+    el.appendChild(row);
+  });
+  el.addEventListener('input', (e)=>{ if(e.target.classList.contains('money')) recomputeAll(); });
+  el.addEventListener('blur', (e)=>{ if(e.target.classList.contains('money')) formatMoneyInput(e.target); }, true);
+}
+function getFundValues(containerId){
+  return Array.from(document.querySelectorAll('#'+containerId+' .money')).map(inp=>parseMoney(inp.value));
+}
+const ZERO = FUNDOS.map(()=>0);
+buildFundGrid('a-fundGridPlano', ZERO, 'plano');
+buildFundGrid('v-fundGridHoje', ZERO, '');
+buildFundGrid('v-fundGridPlano', ZERO, 'plano');
+function drawBars(containerId, items, barPx){
+  const el = document.getElementById(containerId);
+  el.innerHTML = `
+    <div class="compare-row" id="${containerId}Values"></div>
+    <div class="compare-row" id="${containerId}Bars"></div>
+    <div class="compare-row" id="${containerId}Tags"></div>`;
+  const valuesEl = document.getElementById(containerId+'Values');
+  const barsEl = document.getElementById(containerId+'Bars');
+  const tagsEl = document.getElementById(containerId+'Tags');
+  const maxVal = Math.max(...items.map(i=>i.value), 1);
+  items.forEach(it=>{
+    const px = Math.max((it.value/maxVal)*barPx, 4);
+    const vcol = document.createElement('div'); vcol.className='compare-col';
+    vcol.innerHTML = `<div class="compare-value">${brl(it.value)}</div>`; valuesEl.appendChild(vcol);
+    const bcol = document.createElement('div'); bcol.className='compare-col';
+    bcol.innerHTML = `<div class="compare-bar-wrap"><div class="compare-bar" style="height:${px}px; background:${it.color}"></div></div>`; barsEl.appendChild(bcol);
+    const tcol = document.createElement('div'); tcol.className='compare-col';
+    tcol.innerHTML = `<div class="compare-tag">${it.label}</div>`; tagsEl.appendChild(tcol);
+  });
+}
+// ---------- Home + wizard navigation ----------
+const WIZARDS = {
+  aumento:  ['linha','situacao','captacao','resultado'],
+  virtuose: ['linha','situacao','captacao','distribuicao','resultado'],
+};
+const wizardState = { aumento:0, virtuose:0 };
+function showScreen(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  if(WIZARDS[name]) renderWizardStep(name);
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+function renderWizardStep(ranking){
+  const steps = WIZARDS[ranking];
+  const idx = wizardState[ranking];
+  const stepName = steps[idx];
+  document.querySelectorAll('#screen-'+ranking+' .wiz-step').forEach(el=>{
+    el.classList.toggle('active', el.dataset.step===stepName);
+  });
+  const progEl = document.getElementById(ranking+'-progress');
+  progEl.innerHTML = steps.map((s,i)=>{
+    const cls = i===idx ? 'current' : (i<idx ? 'done' : '');
+    const pill = `<span class="wiz-pill ${cls}">${i+1}</span>`;
+    return i < steps.length-1 ? pill+'<span class="wiz-pill-sep"></span>' : pill;
+  }).join('');
+  const backBtn = document.getElementById(ranking+'-btnBack');
+  const nextBtn = document.getElementById(ranking+'-btnNext');
+  backBtn.classList.toggle('hidden', idx===0);
+  nextBtn.textContent = idx===steps.length-1 ? '🏠 Ver outro ranking' : 'Avançar →';
+  // Passo "distribuição" (Virtuose) depende das datas do passo "linha" — garante a tabela atualizada
+  if(ranking==='virtuose' && stepName==='distribuicao'){ rebuildMonthRows(); }
+  recomputeAll();
+}
+function wizardNext(ranking){
+  const steps = WIZARDS[ranking];
+  if(wizardState[ranking] < steps.length-1){
+    wizardState[ranking]++;
+    renderWizardStep(ranking);
+  } else {
+    showScreen('home');
+  }
+}
+function wizardBack(ranking){
+  if(wizardState[ranking] > 0){
+    wizardState[ranking]--;
+    renderWizardStep(ranking);
+  }
+}
+document.querySelectorAll('.ranking-card').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    const r = btn.dataset.goto;
+    wizardState[r] = 0;
+    showScreen(r);
+  });
+});
+document.querySelectorAll('[data-home]').forEach(btn=>{
+  btn.addEventListener('click', ()=>showScreen('home'));
+});
+// ---------- Minimalist (!) info badges: click to reveal, click elsewhere to close ----------
+// Popover uses position:fixed with a JS-computed, viewport-clamped position so it never
+// overflows off-screen on narrow phone widths regardless of where the badge sits.
+function closeAllInfoPops(){
+  document.querySelectorAll('.info-pop.open').forEach(p=>p.classList.remove('open'));
+}
+document.addEventListener('click', (e)=>{
+  const badge = e.target.closest('.info-badge');
+  if(badge){
+    const pop = badge.nextElementSibling;
+    const wasOpen = pop.classList.contains('open');
+    closeAllInfoPops();
+    if(!wasOpen){
+      const rect = badge.getBoundingClientRect();
+      const popWidth = Math.min(280, window.innerWidth - 32);
+      let left = rect.left;
+      if(left + popWidth > window.innerWidth - 16) left = window.innerWidth - popWidth - 16;
+      if(left < 16) left = 16;
+      let top = rect.bottom + 8;
+      pop.style.width = popWidth + 'px';
+      pop.style.left = left + 'px';
+      pop.style.top = top + 'px';
+      pop.classList.add('open');
+      // keep the popover on-screen vertically too (in case the badge is near the bottom)
+      const popRect = pop.getBoundingClientRect();
+      if(popRect.bottom > window.innerHeight - 8){
+        pop.style.top = Math.max(8, rect.top - popRect.height - 8) + 'px';
+      }
+      badge.classList.add('seen');
     }
-    function parseMoney(str){
-        const digits = (str||'').replace(/[^\d]/g,'');
-        return digits ? parseInt(digits,10) : 0;
-    }
-    function formatMoneyInput(el){
-        const v = parseMoney(el.value);
-        el.value = v ? new Intl.NumberFormat('pt-BR').format(v) : '';
-        return v;
-    }
-    // ---- Build fund grid (STEP 1: PL hoje) ----
-    const fundGrid = document.getElementById('fundGrid');
-    FUNDOS.forEach((f, i)=>{
-        const row = document.createElement('div');
-        row.className = 'fund-row';
-        row.innerHTML = `
-            <div class="peso-badge peso-${f.peso}">${f.peso}×</div>
-                <div class="fund-meta">
-                      <div class="fund-name" title="${f.name}">${f.name}</div>
-                            <div class="fund-input-wrap">
-                                    <span>R$</span>
-                                            <input type="text" inputmode="numeric" class="money" data-idx="${i}" value="${new Intl.NumberFormat('pt-BR').format(DEFAULT_PL[i])}">
-                                                  </div>
-                                                      </div>`;
-        fundGrid.appendChild(row);
-    });
-    // ---- Build fund grid (STEP 2: captacao planejada) ----
-    const fundGridPlano = document.getElementById('fundGridPlano');
-    FUNDOS.forEach((f, i)=>{
-        const row = document.createElement('div');
-        row.className = 'fund-row';
-        row.innerHTML = `
-            <div class="peso-badge peso-${f.peso}">${f.peso}×</div>
-                <div class="fund-meta">
-                      <div class="fund-name" title="${f.name}">${f.name}</div>
-                            <div class="fund-input-wrap">
-                                    <span>R$</span>
-                                            <input type="text" inputmode="numeric" class="money plano" data-idx="${i}" value="${new Intl.NumberFormat('pt-BR').format(DEFAULT_PLANO[i])}">
-                                                  </div>
-                                                      </div>`;
-        fundGridPlano.appendChild(row);
-    });
-    // ---- Input events ----
-    document.getElementById('fundGrid').addEventListener('input', (e)=>{
-        if(e.target.classList.contains('money')) recompute();
-    });
-    document.getElementById('fundGrid').addEventListener('blur', (e)=>{
-        if(e.target.classList.contains('money')) formatMoneyInput(e.target);
-    }, true);
-    document.getElementById('fundGridPlano').addEventListener('input', (e)=>{
-        if(e.target.classList.contains('money')) recompute();
-    });
-    document.getElementById('fundGridPlano').addEventListener('blur', (e)=>{
-        if(e.target.classList.contains('money')) formatMoneyInput(e.target);
-    }, true);
-    function getFundValues(containerId){
-        return Array.from(document.querySelectorAll('#'+containerId+' .money')).map(inp=>parseMoney(inp.value));
-    }
-    function drawBars(containerId, items, barPx){
-        const el = document.getElementById(containerId);
-        el.innerHTML = `
-            <div class="compare-row" id="${containerId}Values"></div>
-                <div class="compare-row" id="${containerId}Bars"></div>
-                    <div class="compare-row" id="${containerId}Tags"></div>`;
-        const valuesEl = document.getElementById(containerId+'Values');
-        const barsEl = document.getElementById(containerId+'Bars');
-        const tagsEl = document.getElementById(containerId+'Tags');
-        const maxVal = Math.max(...items.map(i=>i.value), 1);
-        items.forEach(it=>{
-              const px = Math.max((it.value/maxVal)*barPx, 4);
-              const vcol = document.createElement('div');
-              vcol.className = 'compare-col';
-              vcol.innerHTML = `<div class="compare-value">${brl(it.value)}</div>`;
-              valuesEl.appendChild(vcol);
-              const bcol = document.createElement('div');
-              bcol.className = 'compare-col';
-              bcol.innerHTML = `<div class="compare-bar-wrap"><div class="compare-bar" style="height:${px}px; background:${it.color}"></div></div>`;
-              barsEl.appendChild(bcol);
-              const tcol = document.createElement('div');
-              tcol.className = 'compare-col';
-              tcol.innerHTML = `<div class="compare-tag">${it.label}</div>`;
-              tagsEl.appendChild(tcol);
-        });
-    }
-    function recompute(){
-        // ---- Step 1: PL hoje ----
-        const pls = getFundValues('fundGrid');
-        let plTotal = 0, plPond = 0;
-        pls.forEach((v,i)=>{ plTotal += v; plPond += v * FUNDOS[i].peso; });
-        document.getElementById('statPLTotal').textContent = brl(plTotal);
-        document.getElementById('statPLPond').textContent = brl(plPond);
-        // ---- Step 2: captacao planejada, fundo por fundo ----
-        const planos = getFundValues('fundGridPlano');
-        let deltaP = 0, captacaoTotal = 0;
-        planos.forEach((v,i)=>{ deltaP += v * FUNDOS[i].peso; captacaoTotal += v; });
-        const plPondNovo = plPond + deltaP;
-        document.getElementById('heroPontos').textContent = brl(plPondNovo);
-        document.getElementById('heroSub').textContent = `PL ponderado hoje: ${brl(plPond)} + captação ponderada: ${brl(deltaP)}`;
-        const deltaEl = document.getElementById('heroDelta');
-        const arrow = deltaP >= 0 ? '▲' : '▼';
-        deltaEl.textContent = `${arrow} ${brl(Math.abs(deltaP))} em relação ao seu PL ponderado hoje`;
-        deltaEl.className = 'hero-delta ' + (deltaP >= 0 ? 'up' : 'down');
-        // ---- Peso comparison chart: mesmo total, pesos 1x-5x ----
-        const pesoItems = [1,2,3,4,5].map(p=>{
-              const plPondNovoP = plPond + captacaoTotal*p;
-              return {label: p+'×', value: plPondNovoP, color: 'var(--violet)'};
-        });
-        drawBars('pesoCompareChart', pesoItems, 150);
-    }
-    recompute();
-  </script>
-  </body>
-</html>html>
-  </script></footer></h2></b></div>
-      </div></i></b></h1>
-  </body>
-  </style></title>
-  </head>
+    e.stopPropagation();
+    return;
+  }
+  if(!e.target.closest('.info-pop')) closeAllInfoPops();
+});
+window.addEventListener('scroll', closeAllInfoPops, true);
+window.addEventListener('resize', closeAllInfoPops);
+document.getElementById('aumento-btnNext').addEventListener('click', ()=>wizardNext('aumento'));
+document.getElementById('aumento-btnBack').addEventListener('click', ()=>wizardBack('aumento'));
+document.getElementById('virtuose-btnNext').addEventListener('click', ()=>wizardNext('virtuose'));
+document.getElementById('virtuose-btnBack').addEventListener('click', ()=>wizardBack('virtuose'));
+// ---------- Bind plain inputs ----------
+['a-dataLargada','a-dataFechamento','a-plLargada','a-plHoje'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', recomputeAll);
+});
+['v-dataLargada','v-diasDecorridos','v-mediaAtual'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', recomputeAll);
+});
+// vigente/final mudam o próprio conjunto de meses da campanha — precisa reconstruir a tabela
+['v-dataVigente','v-dataFinal'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', ()=>{ rebuildMonthRows(); recomputeAll(); });
+});
+['a-plLargada','a-plHoje','v-mediaAtual'].forEach(id=>{
+  document.getElementById(id).addEventListener('blur', (e)=>formatMoneyInput(e.target));
+});
+function recomputeAll(){
+  recomputeAumento();
+  recomputeVirtuose();
+}
+// ================= Cronograma mensal de captação (Virtuose) =================
+const MESES_ABREV = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+// Divide 100% em n fatias iguais (1 casa decimal) garantindo soma exata de 100 —
+// o último mês absorve a sobra de arredondamento, senão "distribuir igualmente"
+// deixava o próprio botão gerar um aviso de "soma diferente de 100%".
+function equalSplitPercents(n){
+  if(n<=0) return [];
+  const base = Math.floor((1000/n))/10;
+  const arr = new Array(n).fill(base);
+  const usedSum = Math.round(arr.reduce((a,b)=>a+b,0)*10)/10;
+  arr[n-1] = Math.round((base + (100-usedSum))*10)/10;
+  return arr;
+}
+function buildMonthSegments(dVigenteISO, dFinalISO){
+  if(!dVigenteISO || !dFinalISO) return [];
+  const start = new Date(dVigenteISO+'T00:00:00Z');
+  start.setUTCDate(start.getUTCDate()+1); // primeiro dia futuro (vigente já está contado em "dias decorridos")
+  const end = new Date(dFinalISO+'T00:00:00Z');
+  if(start > end) return [];
+  const segments = [];
+  let cur = new Date(start);
+  while(cur <= end){
+    const monthEnd = new Date(Date.UTC(cur.getUTCFullYear(), cur.getUTCMonth()+1, 0));
+    const segEnd = monthEnd < end ? monthEnd : end;
+    const key = cur.getUTCFullYear()+'-'+String(cur.getUTCMonth()+1).padStart(2,'0');
+    const label = MESES_ABREV[cur.getUTCMonth()]+'/'+cur.getUTCFullYear();
+    const calendarDays = Math.round((segEnd-cur)/86400000)+1;
+    const inicioISO = cur.toISOString().slice(0,10);
+    const fimISO = segEnd.toISOString().slice(0,10);
+    const diasUteis = businessDaysInRange(inicioISO, fimISO);
+    segments.push({key, label, calendarDays, diasUteis});
+    cur = new Date(segEnd);
+    cur.setUTCDate(cur.getUTCDate()+1);
+  }
+  return segments;
+}
+function rebuildMonthRows(){
+  const dVigente = document.getElementById('v-dataVigente').value;
+  const dFinal = document.getElementById('v-dataFinal').value;
+  const segments = buildMonthSegments(dVigente, dFinal);
+  const tbody = document.getElementById('v-monthRows');
+  tbody.innerHTML = '';
+  if(segments.length===0){
+    tbody.innerHTML = `<tr><td colspan="6" class="empty-note">Defina uma "data vigente" e um "fim oficial da campanha" com pelo menos um mês futuro entre elas.</td></tr>`;
+    return;
+  }
+  const pctsIguais = equalSplitPercents(segments.length);
+  segments.forEach((seg,i)=>{
+    const tr = document.createElement('tr');
+    tr.dataset.key = seg.key;
+    tr.innerHTML = `
+      <td class="month-label">${seg.label}</td>
+      <td data-role="diasUteis">${seg.diasUteis}</td>
+      <td data-role="posDias">–</td>
+      <td><input type="text" inputmode="decimal" class="pct" data-key="${seg.key}" value="${pctsIguais[i]}"></td>
+      <td data-role="captacaoMes">R$ 0</td>
+      <td data-role="acumulado">R$ 0</td>`;
+    tbody.appendChild(tr);
+  });
+}
+document.getElementById('v-monthRows').addEventListener('input', (e)=>{
+  if(e.target.classList.contains('pct')) recomputeAll();
+});
+document.getElementById('v-btnDistribuirIgual').addEventListener('click', ()=>{
+  const inputs = document.querySelectorAll('#v-monthRows .pct');
+  const pctsIguais = equalSplitPercents(inputs.length);
+  inputs.forEach((inp,i)=>inp.value = pctsIguais[i]);
+  recomputeAll();
+});
+// ================= CALC 1: Aumento de PL Ponderado =================
+function recomputeAumento(){
+  const dLargada = document.getElementById('a-dataLargada').value;
+  const dFecha = document.getElementById('a-dataFechamento').value;
+  document.getElementById('a-diasCorridos').textContent = (dLargada&&dFecha) ? daysBetween(dLargada,dFecha) : '–';
+  const plLargada = parseMoney(document.getElementById('a-plLargada').value);
+  const plHoje = parseMoney(document.getElementById('a-plHoje').value);
+  const aumentoAtual = plHoje - plLargada;
+  document.getElementById('a-statAumentoAtual').textContent = brl(aumentoAtual);
+  const planos = getFundValues('a-fundGridPlano');
+  let captacaoPonderada = 0, captacaoTotal = 0;
+  planos.forEach((v,i)=>{ captacaoPonderada += v*FUNDOS[i].peso; captacaoTotal += v; });
+  const aumentoProjetado = aumentoAtual + captacaoPonderada;
+  document.getElementById('a-heroValor').textContent = brl(aumentoProjetado);
+  document.getElementById('a-heroSub').textContent = `Aumento atual: ${brl(aumentoAtual)} + captação ponderada: ${brl(captacaoPonderada)}`;
+  const deltaEl = document.getElementById('a-heroDelta');
+  deltaEl.textContent = `${captacaoPonderada>=0?'▲':'▼'} ${brl(Math.abs(captacaoPonderada))} em relação ao aumento atual`;
+  deltaEl.className = 'hero-delta ' + (captacaoPonderada>=0?'up':'down');
+  const pesoItems = [1,2,3,4,5].map(p=>({label:p+'×', value: aumentoAtual + captacaoTotal*p, color:'var(--violet)'}));
+  drawBars('a-pesoCompareChart', pesoItems, 140);
+}
+// ================= CALC 2: Virtuose — Média Diária Ponderada =================
+function recomputeVirtuose(){
+  const dLargada = document.getElementById('v-dataLargada').value;
+  const dVigente = document.getElementById('v-dataVigente').value;
+  const dFinal = document.getElementById('v-dataFinal').value;
+  // Cadência = dias com posição ÷ dias ÚTEIS decorridos (não dias corridos) — a base do Power BI
+  // só carrega posição em dia útil (conferido: 9 dias com posição = exatamente os 9 dias úteis
+  // entre 31/07 e 12/08/2026, zero fim de semana), então usar dias corridos como base subestimava
+  // a cadência real sempre que o período tinha fim de semana no meio.
+  const diasUteisDecorridos = (dLargada&&dVigente) ? Math.max(businessDaysInRange(dLargada,dVigente),1) : 1;
+  document.getElementById('v-diasCorridosDecorridos').textContent = diasUteisDecorridos;
+  const diasDecorridos = Math.max(parseNum(document.getElementById('v-diasDecorridos').value),0);
+  const cadencia = diasUteisDecorridos>0 ? diasDecorridos/diasUteisDecorridos : 0;
+  document.getElementById('v-cadencia').textContent = cadencia.toFixed(2);
+  // PL ponderado hoje — agora é a BASE que continua contando em todo dia futuro
+  const hojeVals = getFundValues('v-fundGridHoje');
+  let plHoje = 0;
+  hojeVals.forEach((v,i)=>{ plHoje += v*FUNDOS[i].peso; });
+  document.getElementById('v-statPLHoje').textContent = brl(plHoje);
+  const mediaAtual = parseMoney(document.getElementById('v-mediaAtual').value);
+  // Captação total planejada (peso aplicado), a ser distribuída mês a mês
+  const planoVals = getFundValues('v-fundGridPlano');
+  let captacaoTotal = 0;
+  planoVals.forEach((v,i)=>{ captacaoTotal += v*FUNDOS[i].peso; });
+  document.getElementById('v-statCaptacaoTotal').textContent = brl(captacaoTotal);
+  // ---- Cronograma mensal: cada mês tem um % da captação total e uma fatia de dias com posição ----
+  const segments = buildMonthSegments(dVigente, dFinal);
+  const rows = Array.from(document.querySelectorAll('#v-monthRows tr[data-key]'));
+  let diasRestantes = 0, somaPct = 0, cumDiasUteis = 0, cumDiasAlvoAnterior = 0;
+  let cumCaptacao = 0, somaFuturo = 0;
+  const evolBody = document.getElementById('v-evolRows');
+  evolBody.innerHTML = '';
+  let cumDiasParaMedia = diasDecorridos, cumSomaParaMedia = mediaAtual*diasDecorridos;
+  rows.forEach((tr,i)=>{
+    const seg = segments[i];
+    const pctInput = tr.querySelector('.pct');
+    const pct = Math.max(parseFloat((pctInput.value||'0').replace(',','.'))||0, 0);
+    somaPct += pct;
+    cumDiasUteis += seg.diasUteis;
+    const cumDiasAlvo = Math.round(cumDiasUteis*cadencia);
+    const diasMes = Math.max(cumDiasAlvo - cumDiasAlvoAnterior, 0);
+    cumDiasAlvoAnterior = cumDiasAlvo;
+    diasRestantes += diasMes;
+    const captacaoMes = captacaoTotal * (pct/100);
+    cumCaptacao += captacaoMes;
+    const nivelDiarioMes = plHoje + cumCaptacao;
+    tr.querySelector('[data-role="posDias"]').textContent = diasMes;
+    tr.querySelector('[data-role="captacaoMes"]').textContent = brl(captacaoMes);
+    tr.querySelector('[data-role="acumulado"]').textContent = brl(cumCaptacao);
+    somaFuturo += nivelDiarioMes*diasMes;
+    cumDiasParaMedia += diasMes;
+    cumSomaParaMedia += nivelDiarioMes*diasMes;
+    const mediaAteEsseMes = cumDiasParaMedia>0 ? cumSomaParaMedia/cumDiasParaMedia : mediaAtual;
+    const evolTr = document.createElement('tr');
+    evolTr.innerHTML = `<td class="month-label">${seg.label}</td><td>${brl(nivelDiarioMes)}</td><td>${diasMes}</td><td>${brl(mediaAteEsseMes)}</td>`;
+    evolBody.appendChild(evolTr);
+  });
+  document.getElementById('v-monthTotalDias').textContent = diasRestantes;
+  document.getElementById('v-monthTotalPct').textContent = somaPct.toFixed(1).replace(/\.0$/,'') + '%';
+  document.getElementById('v-monthTotalCaptacao').textContent = brl(cumCaptacao);
+  const pctStatus = document.getElementById('v-pctStatus');
+  if(rows.length===0){
+    pctStatus.textContent = '';
+  } else if(Math.abs(somaPct-100) < 0.05){
+    pctStatus.textContent = `✓ Soma das porcentagens: ${somaPct.toFixed(1).replace(/\.0$/,'')}% — cobre 100% da captação planejada.`;
+    pctStatus.className = 'pct-status ok';
+  } else {
+    pctStatus.textContent = `⚠ Soma das porcentagens: ${somaPct.toFixed(1).replace(/\.0$/,'')}% — ajuste para 100% pra usar toda a captação do passo 3 (o restante fica de fora da projeção).`;
+    pctStatus.className = 'pct-status warn';
+  }
+  document.getElementById('v-statDiasRestantes').textContent = diasRestantes;
+  const diasTotais = diasDecorridos + diasRestantes;
+  document.getElementById('v-statDiasTotais').textContent = diasTotais;
+  const totalGeral = mediaAtual*diasDecorridos + somaFuturo;
+  const novaMedia = diasTotais>0 ? totalGeral/diasTotais : mediaAtual;
+  document.getElementById('v-heroValor').textContent = brl(novaMedia);
+  document.getElementById('v-heroSub').textContent = `Média atual: ${brl(mediaAtual)} · ${diasDecorridos} dia(s) já decorridos + ${diasRestantes} dia(s) com posição estimados nos meses futuros`;
+  const deltaV = novaMedia - mediaAtual;
+  const deltaVEl = document.getElementById('v-heroDelta');
+  deltaVEl.textContent = `${deltaV>=0?'▲':'▼'} ${brl(Math.abs(deltaV))} em relação à sua média atual`;
+  deltaVEl.className = 'hero-delta ' + (deltaV>=0?'up':'down');
+}
+rebuildMonthRows();
+recomputeAll();
+showScreen('home');
+</script>
+</body>
+</html>
