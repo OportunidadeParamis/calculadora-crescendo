@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -327,31 +326,19 @@
   body.autenticado .wrap{ display:block; }
   body.autenticado #loginGate{ display:none; }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 </head>
 <body>
-<!-- ============ TELA DE LOGIN (e-mail + código) — bloqueia acesso até autenticar ============ -->
+<!-- ============ TELA DE ACESSO (só e-mail) — bloqueia acesso até e-mail autorizado ============ -->
 <div id="loginGate">
   <div class="card">
     <h2>Acesso à Calculadora Maestria</h2>
-    <p class="hint">Informe seu e-mail para receber um código de acesso.</p>
+    <p class="hint">Informe seu e-mail para continuar.</p>
 
-    <div id="loginPassoEmail">
-      <div class="field">
-        <label>E-mail</label>
-        <input type="email" id="loginEmailInput" placeholder="seu.email@paramis.com.br" autocomplete="email">
-      </div>
-      <button type="button" class="btn-primary" id="btnEnviarCodigo" style="margin-top:14px; width:100%;">Enviar código</button>
+    <div class="field">
+      <label>E-mail</label>
+      <input type="email" id="loginEmailInput" placeholder="seu.email@paramis.com.br" autocomplete="email">
     </div>
-
-    <div id="loginPassoCodigo" style="display:none;">
-      <div class="field">
-        <label>Código recebido por e-mail</label>
-        <input type="text" id="loginCodigoInput" placeholder="000000" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
-      </div>
-      <button type="button" class="btn-primary" id="btnConfirmarCodigo" style="margin-top:14px; width:100%;">Entrar</button>
-      <button type="button" id="btnTrocarEmail" style="margin-top:8px; width:100%; background:transparent; border:1px solid var(--border); color:var(--text-secondary); border-radius:10px; padding:10px; cursor:pointer;">Usar outro e-mail</button>
-    </div>
+    <button type="button" class="btn-primary" id="btnEntrar" style="margin-top:14px; width:100%;">Entrar</button>
 
     <div class="login-msg" id="loginMsg"></div>
   </div>
@@ -587,16 +574,15 @@
 </div>
 <script>
 // ======================================================================
-// LOGIN — e-mail + código, via Supabase Auth. A validação de quem PODE
-// entrar (domínio @paramis.com.br ou e-mail já cadastrado na base de
-// assessores) roda no banco (hook "before-user-created"), não aqui —
-// isso é só a interface que envia/confirma o código e guarda a sessão.
+// PORTÃO DE ACESSO — verifica se o e-mail digitado está autorizado
+// (domínio @paramis.com.br OU cadastrado na base de assessores).
+// Isso é um filtro de acesso, não uma autenticação de verdade: não confirma
+// que a pessoa é dona daquele e-mail. Os dados sensíveis (assessor_completo)
+// ficam protegidos à parte, independente dessa tela.
 // ======================================================================
 const SUPABASE_URL = 'https://wtswqdsjgfxtjqljrrhv.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_chRmK_sSPKoPpJZiSJutGA_vHTs35Hv';
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-
-let emailEmAndamento = '';
+const CHAVE_ACESSO_LOCAL = 'maestria_email_liberado';
 
 function mostrarMsgLogin(texto, tipo){
   const el = document.getElementById('loginMsg');
@@ -608,76 +594,47 @@ function liberarAcesso(){
   document.body.classList.add('autenticado');
 }
 
-function mostrarPassoCodigo(email){
-  emailEmAndamento = email;
-  document.getElementById('loginPassoEmail').style.display = 'none';
-  document.getElementById('loginPassoCodigo').style.display = 'block';
-  mostrarMsgLogin('Código enviado para ' + email + '.', 'ok');
-}
-
-function mostrarPassoEmail(){
-  document.getElementById('loginPassoEmail').style.display = 'block';
-  document.getElementById('loginPassoCodigo').style.display = 'none';
-  document.getElementById('loginCodigoInput').value = '';
-  mostrarMsgLogin('');
-}
-
-async function enviarCodigo(){
+async function verificarEmail(){
   const email = (document.getElementById('loginEmailInput').value || '').trim();
   if(!email || !email.includes('@')){
     mostrarMsgLogin('Digite um e-mail válido.', 'erro');
     return;
   }
-  const botao = document.getElementById('btnEnviarCodigo');
-  botao.disabled = true;
-  mostrarMsgLogin('Enviando código...', 'ok');
-  const { error } = await supabaseClient.auth.signInWithOtp({
-    email,
-    options: { shouldCreateUser: true }
-  });
-  botao.disabled = false;
-  if(error){
-    mostrarMsgLogin(error.message || 'Não foi possível enviar o código. Tente novamente.', 'erro');
-    return;
-  }
-  mostrarPassoCodigo(email);
-}
-
-async function confirmarCodigo(){
-  const codigo = (document.getElementById('loginCodigoInput').value || '').trim();
-  if(!codigo){
-    mostrarMsgLogin('Digite o código recebido por e-mail.', 'erro');
-    return;
-  }
-  const botao = document.getElementById('btnConfirmarCodigo');
+  const botao = document.getElementById('btnEntrar');
   botao.disabled = true;
   mostrarMsgLogin('Verificando...', 'ok');
-  const { error } = await supabaseClient.auth.verifyOtp({
-    email: emailEmAndamento,
-    token: codigo,
-    type: 'email',
-  });
-  botao.disabled = false;
-  if(error){
-    mostrarMsgLogin(error.message || 'Código inválido ou expirado.', 'erro');
-    return;
+
+  try {
+    const resp = await fetch(`${SUPABASE_URL}/rest/v1/rpc/check_email_permitido`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: SUPABASE_PUBLISHABLE_KEY,
+        Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+      },
+      body: JSON.stringify({ p_email: email }),
+    });
+    const permitido = await resp.json();
+    botao.disabled = false;
+    if(resp.ok && permitido === true){
+      localStorage.setItem(CHAVE_ACESSO_LOCAL, email);
+      liberarAcesso();
+    } else {
+      mostrarMsgLogin('Este e-mail não está autorizado a acessar a Calculadora Maestria.', 'erro');
+    }
+  } catch(e){
+    botao.disabled = false;
+    mostrarMsgLogin('Não foi possível verificar agora. Tente novamente.', 'erro');
   }
-  liberarAcesso();
 }
 
-document.getElementById('btnEnviarCodigo').addEventListener('click', enviarCodigo);
-document.getElementById('btnConfirmarCodigo').addEventListener('click', confirmarCodigo);
-document.getElementById('btnTrocarEmail').addEventListener('click', mostrarPassoEmail);
-document.getElementById('loginCodigoInput').addEventListener('keydown', (e) => { if(e.key === 'Enter') confirmarCodigo(); });
-document.getElementById('loginEmailInput').addEventListener('keydown', (e) => { if(e.key === 'Enter') enviarCodigo(); });
+document.getElementById('btnEntrar').addEventListener('click', verificarEmail);
+document.getElementById('loginEmailInput').addEventListener('keydown', (e) => { if(e.key === 'Enter') verificarEmail(); });
 
-// Se já existe uma sessão válida (login feito antes, mesmo navegador), libera direto sem pedir de novo.
-supabaseClient.auth.getSession().then(({ data }) => {
-  if(data && data.session){ liberarAcesso(); }
-});
-supabaseClient.auth.onAuthStateChange((_event, session) => {
-  if(session){ liberarAcesso(); }
-});
+// Se esse navegador já verificou um e-mail antes, libera direto sem pedir de novo.
+if(localStorage.getItem(CHAVE_ACESSO_LOCAL)){
+  liberarAcesso();
+}
 
 // Pesos conferidos em 'Base Diversificação'[Valor Ponderado] no modelo "Power BI Campanhas - 2026 - Oficial" (18/08/2026)
 // Ordenado do MAIOR peso para o menor, de propósito: os fundos de maior peso aparecem primeiro em
