@@ -594,6 +594,72 @@ function liberarAcesso(){
   document.body.classList.add('autenticado');
 }
 
+// Depois do login, tenta achar o assessor (pelo e-mail) e pré-preencher a pontuação dele
+// na tela Virtuose. Se o e-mail não corresponder a nenhum assessor (ex.: alguém do time
+// Paramis que não é assessor), simplesmente não pré-preenche nada — sem erro visível.
+let assessorLogado = null;
+
+async function carregarAssessorLogado(email){
+  try {
+    const respAssessor = await fetch(`${SUPABASE_URL}/rest/v1/rpc/buscar_assessor_por_email`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: SUPABASE_PUBLISHABLE_KEY,
+        Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+      },
+      body: JSON.stringify({ p_email: email }),
+    });
+    if(!respAssessor.ok) return;
+    const linhas = await respAssessor.json();
+    if(!Array.isArray(linhas) || !linhas.length) return;
+    assessorLogado = linhas[0]; // { nome, codigo_xp }
+    if(!assessorLogado.codigo_xp) return;
+
+    const respRanking = await fetch(
+      `${SUPABASE_URL}/rest/v1/ranking_snapshot?codigo_xp=eq.${encodeURIComponent(assessorLogado.codigo_xp)}&select=pl_medio_diario_ponderado&limit=1`,
+      { headers: { apikey: SUPABASE_PUBLISHABLE_KEY, Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}` } }
+    );
+    if(respRanking.ok){
+      const linhasRanking = await respRanking.json();
+      if(Array.isArray(linhasRanking) && linhasRanking.length){
+        const campo = document.getElementById('v-plUltimaDivulgacao');
+        // só pré-preenche se o assessor ainda não digitou nada manualmente
+        if(campo && !campo.value){
+          campo.value = new Intl.NumberFormat('pt-BR').format(Math.round(linhasRanking[0].pl_medio_diario_ponderado || 0));
+        }
+      }
+    }
+
+    // Alocação atual por fundo — preenche o grid "Sua situação hoje" com o valor BRUTO (não
+    // ponderado) de cada fundo; o próprio grid já multiplica pelo peso ao recalcular.
+    const respAlocacao = await fetch(
+      `${SUPABASE_URL}/rest/v1/alocacao_fundo?codigo_xp=eq.${encodeURIComponent(assessorLogado.codigo_xp)}&select=ativo,valor`,
+      { headers: { apikey: SUPABASE_PUBLISHABLE_KEY, Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}` } }
+    );
+    if(respAlocacao.ok){
+      const linhasAlocacao = await respAlocacao.json();
+      if(Array.isArray(linhasAlocacao) && linhasAlocacao.length){
+        const valorPorAtivo = {};
+        linhasAlocacao.forEach((l) => { valorPorAtivo[l.ativo] = l.valor; });
+        FUNDOS.forEach((f, i) => {
+          if(valorPorAtivo[f.ativo] !== undefined){
+            const input = document.querySelector(`#v-fundGridHoje .money[data-idx="${i}"]`);
+            // só pré-preenche se o assessor ainda não digitou nada manualmente nesse fundo
+            if(input && parseMoney(input.value) === 0){
+              input.value = new Intl.NumberFormat('pt-BR').format(Math.round(valorPorAtivo[f.ativo] || 0));
+            }
+          }
+        });
+      }
+    }
+
+    if(typeof recomputeAll === 'function') recomputeAll();
+  } catch(e){
+    /* silencioso — pré-preenchimento é um "bônus", nunca deve travar o resto da calculadora */
+  }
+}
+
 async function verificarEmail(){
   const email = (document.getElementById('loginEmailInput').value || '').trim();
   if(!email || !email.includes('@')){
@@ -619,6 +685,7 @@ async function verificarEmail(){
     if(resp.ok && permitido === true){
       localStorage.setItem(CHAVE_ACESSO_LOCAL, email);
       liberarAcesso();
+      carregarAssessorLogado(email);
     } else {
       mostrarMsgLogin('Este e-mail não está autorizado a acessar a Calculadora Maestria.', 'erro');
     }
@@ -632,8 +699,10 @@ document.getElementById('btnEntrar').addEventListener('click', verificarEmail);
 document.getElementById('loginEmailInput').addEventListener('keydown', (e) => { if(e.key === 'Enter') verificarEmail(); });
 
 // Se esse navegador já verificou um e-mail antes, libera direto sem pedir de novo.
-if(localStorage.getItem(CHAVE_ACESSO_LOCAL)){
+const emailSalvo = localStorage.getItem(CHAVE_ACESSO_LOCAL);
+if(emailSalvo){
   liberarAcesso();
+  carregarAssessorLogado(emailSalvo);
 }
 
 // Pesos conferidos em 'Base Diversificação'[Valor Ponderado] no modelo "Power BI Campanhas - 2026 - Oficial" (18/08/2026)
