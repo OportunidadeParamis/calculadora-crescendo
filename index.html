@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -311,9 +312,51 @@
   @media (max-width: 380px){
     .stat-row{ grid-template-columns: 1fr; }
   }
+  /* ===== Tela de login (bloqueia acesso até e-mail autorizado confirmar o código) ===== */
+  #loginGate{
+    position: fixed; inset: 0; z-index: 999;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--page); padding: 24px;
+  }
+  #loginGate .card{ max-width: 380px; width: 100%; }
+  #loginGate .login-msg{ font-size: 13px; margin-top: 10px; min-height: 18px; }
+  #loginGate .login-msg.erro{ color: #f28b82; }
+  #loginGate .login-msg.ok{ color: var(--text-secondary); }
+  #loginGate button[disabled]{ opacity:.55; cursor:not-allowed; }
+  .wrap{ display:none; }
+  body.autenticado .wrap{ display:block; }
+  body.autenticado #loginGate{ display:none; }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 </head>
 <body>
+<!-- ============ TELA DE LOGIN (e-mail + código) — bloqueia acesso até autenticar ============ -->
+<div id="loginGate">
+  <div class="card">
+    <h2>Acesso à Calculadora Maestria</h2>
+    <p class="hint">Informe seu e-mail para receber um código de acesso.</p>
+
+    <div id="loginPassoEmail">
+      <div class="field">
+        <label>E-mail</label>
+        <input type="email" id="loginEmailInput" placeholder="seu.email@paramis.com.br" autocomplete="email">
+      </div>
+      <button type="button" class="btn-primary" id="btnEnviarCodigo" style="margin-top:14px; width:100%;">Enviar código</button>
+    </div>
+
+    <div id="loginPassoCodigo" style="display:none;">
+      <div class="field">
+        <label>Código recebido por e-mail</label>
+        <input type="text" id="loginCodigoInput" placeholder="000000" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
+      </div>
+      <button type="button" class="btn-primary" id="btnConfirmarCodigo" style="margin-top:14px; width:100%;">Entrar</button>
+      <button type="button" id="btnTrocarEmail" style="margin-top:8px; width:100%; background:transparent; border:1px solid var(--border); color:var(--text-secondary); border-radius:10px; padding:10px; cursor:pointer;">Usar outro e-mail</button>
+    </div>
+
+    <div class="login-msg" id="loginMsg"></div>
+  </div>
+</div>
+
 <div class="wrap">
   <div class="eyebrow">
     <span class="dot"></span> MAESTRIA · CAMPANHA 2026
@@ -543,6 +586,99 @@
   <footer>Calculadora Maestria · valores ilustrativos, calculados a partir dos números que você inserir — confirme sempre a pontuação oficial do ranking</footer>
 </div>
 <script>
+// ======================================================================
+// LOGIN — e-mail + código, via Supabase Auth. A validação de quem PODE
+// entrar (domínio @paramis.com.br ou e-mail já cadastrado na base de
+// assessores) roda no banco (hook "before-user-created"), não aqui —
+// isso é só a interface que envia/confirma o código e guarda a sessão.
+// ======================================================================
+const SUPABASE_URL = 'https://wtswqdsjgfxtjqljrrhv.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_chRmK_sSPKoPpJZiSJutGA_vHTs35Hv';
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+let emailEmAndamento = '';
+
+function mostrarMsgLogin(texto, tipo){
+  const el = document.getElementById('loginMsg');
+  el.textContent = texto || '';
+  el.className = 'login-msg' + (tipo ? ' ' + tipo : '');
+}
+
+function liberarAcesso(){
+  document.body.classList.add('autenticado');
+}
+
+function mostrarPassoCodigo(email){
+  emailEmAndamento = email;
+  document.getElementById('loginPassoEmail').style.display = 'none';
+  document.getElementById('loginPassoCodigo').style.display = 'block';
+  mostrarMsgLogin('Código enviado para ' + email + '.', 'ok');
+}
+
+function mostrarPassoEmail(){
+  document.getElementById('loginPassoEmail').style.display = 'block';
+  document.getElementById('loginPassoCodigo').style.display = 'none';
+  document.getElementById('loginCodigoInput').value = '';
+  mostrarMsgLogin('');
+}
+
+async function enviarCodigo(){
+  const email = (document.getElementById('loginEmailInput').value || '').trim();
+  if(!email || !email.includes('@')){
+    mostrarMsgLogin('Digite um e-mail válido.', 'erro');
+    return;
+  }
+  const botao = document.getElementById('btnEnviarCodigo');
+  botao.disabled = true;
+  mostrarMsgLogin('Enviando código...', 'ok');
+  const { error } = await supabaseClient.auth.signInWithOtp({
+    email,
+    options: { shouldCreateUser: true }
+  });
+  botao.disabled = false;
+  if(error){
+    mostrarMsgLogin(error.message || 'Não foi possível enviar o código. Tente novamente.', 'erro');
+    return;
+  }
+  mostrarPassoCodigo(email);
+}
+
+async function confirmarCodigo(){
+  const codigo = (document.getElementById('loginCodigoInput').value || '').trim();
+  if(!codigo){
+    mostrarMsgLogin('Digite o código recebido por e-mail.', 'erro');
+    return;
+  }
+  const botao = document.getElementById('btnConfirmarCodigo');
+  botao.disabled = true;
+  mostrarMsgLogin('Verificando...', 'ok');
+  const { error } = await supabaseClient.auth.verifyOtp({
+    email: emailEmAndamento,
+    token: codigo,
+    type: 'email',
+  });
+  botao.disabled = false;
+  if(error){
+    mostrarMsgLogin(error.message || 'Código inválido ou expirado.', 'erro');
+    return;
+  }
+  liberarAcesso();
+}
+
+document.getElementById('btnEnviarCodigo').addEventListener('click', enviarCodigo);
+document.getElementById('btnConfirmarCodigo').addEventListener('click', confirmarCodigo);
+document.getElementById('btnTrocarEmail').addEventListener('click', mostrarPassoEmail);
+document.getElementById('loginCodigoInput').addEventListener('keydown', (e) => { if(e.key === 'Enter') confirmarCodigo(); });
+document.getElementById('loginEmailInput').addEventListener('keydown', (e) => { if(e.key === 'Enter') enviarCodigo(); });
+
+// Se já existe uma sessão válida (login feito antes, mesmo navegador), libera direto sem pedir de novo.
+supabaseClient.auth.getSession().then(({ data }) => {
+  if(data && data.session){ liberarAcesso(); }
+});
+supabaseClient.auth.onAuthStateChange((_event, session) => {
+  if(session){ liberarAcesso(); }
+});
+
 // Pesos conferidos em 'Base Diversificação'[Valor Ponderado] no modelo "Power BI Campanhas - 2026 - Oficial" (18/08/2026)
 // Ordenado do MAIOR peso para o menor, de propósito: os fundos de maior peso aparecem primeiro em
 // toda grade, para induzir visualmente o assessor a captar neles primeiro.
@@ -573,7 +709,7 @@ const perfilState = { perfil: null, cluster: null };
 // 2026 - Oficial" em 23/08/2026 (última atualização do modelo: 21/08/2026). Isso é uma FOTO — pra
 // manter atualizado, re-exportar periodicamente (ideal: via o sync que já existe pro Base44, não
 // hardcoded aqui pra sempre).
-const RANKING_SNAPSHOT_DATE = '21/08/2026';
+let RANKING_SNAPSHOT_DATE = '21/08/2026';
 const RANKING_SNAPSHOT = {
   virtuose: {
     assessor: {
@@ -600,6 +736,44 @@ const RANKING_SNAPSHOT = {
     },
   },
 };
+// Busca ao vivo do ranking Virtuose/Assessor no Supabase (sincronizado diariamente do Power BI).
+// Sobrescreve o array acima assim que carrega; se falhar (sem internet, Supabase fora do ar etc.),
+// mantém silenciosamente o snapshot congelado já embutido no arquivo. Os outros três grupos
+// (Virtuose/Filial, Aumento/Assessor, Aumento/Filial) ainda não têm sincronização automática —
+// continuam usando o snapshot fixo até essa fonte também ser conectada.
+(function atualizarRankingVirtuoseAssessor(){
+  const SUPABASE_URL = 'https://wtswqdsjgfxtjqljrrhv.supabase.co';
+  const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_chRmK_sSPKoPpJZiSJutGA_vHTs35Hv';
+  fetch(`${SUPABASE_URL}/rest/v1/ranking_snapshot?select=pl_medio_diario_ponderado,categoria,sincronizado_em`, {
+    headers: {
+      apikey: SUPABASE_PUBLISHABLE_KEY,
+      Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+    },
+  })
+    .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
+    .then((linhas) => {
+      if (!Array.isArray(linhas) || !linhas.length) return;
+      const porCluster = { diamante: [], ouro: [], prata: [] };
+      let maisRecente = null;
+      linhas.forEach((linha) => {
+        const chave = (linha.categoria || '').trim().toLowerCase();
+        if (porCluster[chave] && typeof linha.pl_medio_diario_ponderado === 'number') {
+          porCluster[chave].push(linha.pl_medio_diario_ponderado);
+        }
+        if (linha.sincronizado_em && (!maisRecente || linha.sincronizado_em > maisRecente)) {
+          maisRecente = linha.sincronizado_em;
+        }
+      });
+      Object.keys(porCluster).forEach((k) => porCluster[k].sort((a, b) => b - a));
+      RANKING_SNAPSHOT.virtuose.assessor = porCluster;
+      if (maisRecente) {
+        RANKING_SNAPSHOT_DATE = new Date(maisRecente).toLocaleDateString('pt-BR');
+      }
+    })
+    .catch(() => {
+      /* mantém o snapshot congelado embutido acima — nenhuma ação necessária */
+    });
+})();
 // "Se só eu pontuasse e todo mundo mais ficasse parado, em que posição eu estaria hoje" — insere a
 // pontuação projetada no snapshot congelado do grupo (perfil+cluster) e conta quantos ficam à frente.
 function calcPosicaoProjetada(ranking, minhaPontuacao){
