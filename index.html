@@ -276,6 +276,13 @@
   }
   .manual-field::placeholder{ color:var(--text-muted); font-weight:400; font-size:14px; }
   .stat.stat-manual{ border-color:rgba(144,133,233,0.45); }
+  /* campo que era editável e virou informação fixa (vem pronta do backend): mesma aparência
+     dos demais valores calculados — sem contorno, sem fundo, texto branco. */
+  .readonly-field{
+    background:transparent; border:none; padding:0; margin:0; width:100%;
+    color:var(--text-primary); font:inherit; font-variant-numeric:tabular-nums;
+    outline:none; cursor:default;
+  }
   /* variante âmbar: só a palavra do rótulo fica amarela — o retângulo continua igual aos outros */
   .stat.stat-amber .label{ color:var(--warning); }
   footer{ text-align:center; color:var(--text-primary); font-size:16px; font-weight:600; line-height:1.5; margin-top:40px; }
@@ -478,9 +485,9 @@
             <div class="label">Sua alocação ponderada hoje</div>
             <div class="value" id="v-mediaAtualCalc">0</div>
           </div>
-          <div class="stat stat-amber">
-            <div class="label">Pontuação na última divulgação<span class="req-mark">*</span></div>
-            <div class="value"><input type="text" inputmode="numeric" class="manual-field" id="v-plUltimaDivulgacao" value="" placeholder="digite aqui"></div>
+          <div class="stat">
+            <div class="label">Pontuação na última divulgação</div>
+            <div class="value" id="v-plUltimaDivulgacao">–</div>
           </div>
         </div>
         <!-- "Data dessa divulgação" não é mais um campo de tela — fica só no racional do código
@@ -624,9 +631,9 @@ async function carregarAssessorLogado(email){
       const linhasRanking = await respRanking.json();
       if(Array.isArray(linhasRanking) && linhasRanking.length){
         const campo = document.getElementById('v-plUltimaDivulgacao');
-        // só pré-preenche se o assessor ainda não digitou nada manualmente
-        if(campo && !campo.value){
-          campo.value = new Intl.NumberFormat('pt-BR').format(Math.round(linhasRanking[0].pl_medio_diario_ponderado || 0));
+        // agora é texto fixo (não editável) — sempre reflete o dado mais recente do backend
+        if(campo){
+          campo.textContent = new Intl.NumberFormat('pt-BR').format(Math.round(linhasRanking[0].pl_medio_diario_ponderado || 0));
         }
       }
     }
@@ -961,8 +968,9 @@ function renderWizardStep(ranking){
 // Cada validador olha só pro passo em que está e devolve {ok:true} ou {ok:false, el, msg} —
 // "el" é o elemento a destacar/rolar até a tela, "msg" a frase curta mostrada no aviso do wizard.
 function validateVirtuoseSituacao(){
-  const el = document.getElementById('v-plUltimaDivulgacao');
-  if(parseMoney(el.value)===0) return {ok:false, el, msg:'Preencha a pontuação na última divulgação para continuar.'};
+  // "Pontuação na última divulgação" deixou de ser um campo que o assessor preenche — vem pronta
+  // do backend. Não faz mais sentido bloquear o avanço por ela estar vazia, já que não há como o
+  // assessor corrigir isso na tela (se vier vazia, é falta de dado do lado do backend, não do usuário).
   return {ok:true};
 }
 function validateVirtuoseCaptacao(){
@@ -1133,7 +1141,7 @@ document.getElementById('virtuose-btnBack').addEventListener('click', ()=>wizard
 ['a-plLargada','a-plHoje'].forEach(id=>{
   document.getElementById(id).addEventListener('input', recomputeAll);
 });
-['v-dataLargada','v-plUltimaDivulgacao'].forEach(id=>{
+['v-dataLargada'].forEach(id=>{
   document.getElementById(id).addEventListener('input', recomputeAll);
 });
 // "Dias com posição já decorridos" por padrão assume 1 dia útil = 1 dia com posição — sempre que
@@ -1156,7 +1164,7 @@ document.getElementById('v-dataVigente').addEventListener('input', ()=>{
 });
 // fim oficial da campanha muda o conjunto de meses futuros, mas não afeta dias já decorridos
 document.getElementById('v-dataFinal').addEventListener('input', ()=>{ rebuildMonthRows(); recomputeAll(); });
-['a-plLargada','a-plHoje','v-plUltimaDivulgacao'].forEach(id=>{
+['a-plLargada','a-plHoje'].forEach(id=>{
   document.getElementById(id).addEventListener('blur', (e)=>formatMoneyInput(e.target));
 });
 function recomputeAll(){
@@ -1303,36 +1311,36 @@ function recomputeVirtuose(){
   // da projeção dos meses futuros.
   const diasDecorridos = Math.max(parseNum(document.getElementById('v-diasDecorridos').value),0);
   const cadencia = (temDatasLinha && diasUteisDecorridos>0) ? diasDecorridos/diasUteisDecorridos : 0;
-  // Sua alocação ponderada hoje: soma ponderada da grade "sua situação hoje" — é um RETRATO de
-  // agora (não uma média), e é o "chão" sobre o qual os aportes futuros se empilham mês a mês.
+  // "Sua alocação hoje" agora mostra o valor BRUTO (sem peso) do que está na grade — é só uma
+  // conferência visual do assessor, não entra mais em nenhuma conta. O "chão" da projeção futura
+  // passou a ser a pontuação na última divulgação (ver mais abaixo), não mais o valor de hoje —
+  // um único dia não deve carregar o peso de vários dias já divulgados.
   const hojeVals = getFundValues('v-fundGridHoje');
-  let plHoje = 0;
-  hojeVals.forEach((v,i)=>{ plHoje += v*FUNDOS[i].peso; });
-  document.getElementById('v-mediaAtualCalc').textContent = pts(plHoje);
+  let plHojeBruto = 0, plHojePonderado = 0;
+  hojeVals.forEach((v,i)=>{ plHojeBruto += v; plHojePonderado += v*FUNDOS[i].peso; });
+  document.getElementById('v-mediaAtualCalc').textContent = pts(plHojeBruto);
   const alocacaoCaptEl = document.getElementById('v-statAlocacaoHojeCaptacao'); // espelho no passo 2/3
-  if(alocacaoCaptEl) alocacaoCaptEl.textContent = pts(plHoje);
-  // Pontuação na última divulgação: campo MANUAL (é a média histórica real, calculada pelo Power BI
-  // com base em todo o histórico da campanha — não dá pra reconstruir isso só com a grade de hoje).
-  // "Dias com posição já decorridos" é 100% automático (calendário de dias úteis, backend) — não
-  // aparece na tela porque o próprio calendário já resolve isso sem precisar de ajuste manual.
-  let mediaAtual = parseMoney(document.getElementById('v-plUltimaDivulgacao').value);
+  if(alocacaoCaptEl) alocacaoCaptEl.textContent = pts(plHojeBruto);
+  // Pontuação na última divulgação: vem pronta do backend (Power BI/Supabase), não é mais editável
+  // pelo assessor — por isso lemos o texto fixo do card em vez do valor de um input.
+  let mediaAtual = parseMoney(document.getElementById('v-plUltimaDivulgacao').textContent);
   // Espelho no passo 2/3: mostra a pontuação na última divulgação (mais intuitivo pro assessor
-  // reconhecer o próprio número) — só de exibição. O empilhamento de captação continua usando
-  // "plHoje" (alocação de hoje) por trás, sem nenhuma mudança na conta.
+  // reconhecer o próprio número) — só de exibição. O empilhamento de captação usa essa mesma
+  // pontuação (já reconciliada com o "hoje" logo abaixo) como base, não mais o valor de hoje.
   const plHojeCaptEl = document.getElementById('v-statPLHojeCaptacao');
   if(plHojeCaptEl) plHojeCaptEl.textContent = pts(mediaAtual);
   // Reconciliação: a pontuação acima só vale até a DATA daquela divulgação. Se hoje é depois dela,
   // os dias entre as duas ainda não foram recalculados pelo BI — completamos essa lacuna usando a
-  // alocação de hoje (única informação que temos pra esses dias). Sem data preenchida, assumimos
-  // que a divulgação já é de hoje (comportamento antigo, sem lacuna). Isso é 100% backend — não
-  // aparece pro assessor em nenhum lugar da tela, só entra no cálculo final.
+  // alocação de hoje PONDERADA (única informação que temos pra esses dias). Sem data preenchida,
+  // assumimos que a divulgação já é de hoje (comportamento antigo, sem lacuna). Isso é 100% backend —
+  // não aparece pro assessor em nenhum lugar da tela, só entra no cálculo final.
   const dataDivulgacao = document.getElementById('v-dataUltimaDivulgacao').value;
   if(dataDivulgacao && dLargada && dataDivulgacao < dVigente){
     const diasAteDivulgacao = Math.max(businessDaysInRange(dLargada, dataDivulgacao), 1);
     const diaSeguinte = new Date(dataDivulgacao+'T00:00:00Z'); diaSeguinte.setUTCDate(diaSeguinte.getUTCDate()+1);
     const diasLacuna = businessDaysInRange(diaSeguinte.toISOString().slice(0,10), dVigente);
     if(diasLacuna > 0){
-      mediaAtual = (mediaAtual*diasAteDivulgacao + plHoje*diasLacuna) / (diasAteDivulgacao+diasLacuna);
+      mediaAtual = (mediaAtual*diasAteDivulgacao + plHojePonderado*diasLacuna) / (diasAteDivulgacao+diasLacuna);
     }
   }
   // Captação total planejada (peso aplicado), a ser distribuída mês a mês
@@ -1369,9 +1377,9 @@ function recomputeVirtuose(){
     diasRestantes += diasMes;
     // ---- Premissa do aporte: a captação do mês entra no ÚLTIMO DIA ÚTIL daquele mês ----
     const captacaoMes = captacaoTotal * (pct/100);
-    const nivelAntesAporte = plHoje + cumCaptacao;      // nível vigente até o dia anterior ao aporte
+    const nivelAntesAporte = mediaAtual + cumCaptacao;  // nível vigente até o dia anterior ao aporte
     cumCaptacao += captacaoMes;
-    const nivelAposAporte = plHoje + cumCaptacao;       // nível a partir do último dia útil do mês
+    const nivelAposAporte = mediaAtual + cumCaptacao;   // nível a partir do último dia útil do mês
     const diasAntes = Math.max(diasMes - 1, 0);         // dias do mês antes do último dia útil
     const diasAporte = diasMes > 0 ? 1 : 0;             // o próprio último dia útil
     const somaMes = nivelAntesAporte*diasAntes + nivelAposAporte*diasAporte;
