@@ -614,11 +614,11 @@ async function carregarAssessorLogado(email){
     const linhas = await respAssessor.json();
     if(!Array.isArray(linhas) || !linhas.length) return;
     assessorLogado = linhas[0]; // { nome, codigo_xp }
-    if(!assessorLogado.codigo_xp) return;
+    if(!assessorLogado.nome) return;
 
     const respRanking = await fetch(
-      `${SUPABASE_URL}/rest/v1/ranking_snapshot?codigo_xp=eq.${encodeURIComponent(assessorLogado.codigo_xp)}&select=pl_medio_diario_ponderado&limit=1`,
-      { headers: { apikey: SUPABASE_PUBLISHABLE_KEY, Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}` } }
+      `${SUPABASE_URL}/rest/v1/rpc/buscar_ranking_por_nome`,
+      { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: SUPABASE_PUBLISHABLE_KEY, Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}` }, body: JSON.stringify({ p_nome: assessorLogado.nome }) }
     );
     if(respRanking.ok){
       const linhasRanking = await respRanking.json();
@@ -634,8 +634,8 @@ async function carregarAssessorLogado(email){
     // Alocação atual por fundo — preenche o grid "Sua situação hoje" com o valor BRUTO (não
     // ponderado) de cada fundo; o próprio grid já multiplica pelo peso ao recalcular.
     const respAlocacao = await fetch(
-      `${SUPABASE_URL}/rest/v1/alocacao_fundo?codigo_xp=eq.${encodeURIComponent(assessorLogado.codigo_xp)}&select=ativo,valor`,
-      { headers: { apikey: SUPABASE_PUBLISHABLE_KEY, Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}` } }
+      `${SUPABASE_URL}/rest/v1/rpc/buscar_alocacao_por_nome`,
+      { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: SUPABASE_PUBLISHABLE_KEY, Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}` }, body: JSON.stringify({ p_nome: assessorLogado.nome }) }
     );
     if(respAlocacao.ok){
       const linhasAlocacao = await respAlocacao.json();
