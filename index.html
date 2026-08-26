@@ -120,6 +120,18 @@
     color: var(--text-secondary); margin: 0 0 4px;
   }
   .card .hint{ font-size: 13px; color: var(--text-muted); margin: 6px 0 18px; }
+  /* Título de card em destaque (telas onde o assessor precisa decidir algo) */
+  .card h2.h2-lg{ font-size:18px; letter-spacing:0.04em; color:var(--text-primary); margin-bottom:10px; }
+  @media (max-width: 640px){ .card h2.h2-lg{ font-size:16px; } }
+  /* Link para o ranking oficial (PDF/Power BI) */
+  .ranking-link{
+    display:inline-flex; align-items:center; gap:6px; text-decoration:none;
+    font-size:11.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase;
+    color:var(--violet); background:rgba(144,133,233,0.10);
+    border:1px solid rgba(144,133,233,0.4); border-radius:999px; padding:5px 12px; white-space:nowrap;
+  }
+  .ranking-link:hover{ background:rgba(144,133,233,0.20); color:var(--text-primary); }
+  .eyebrow .ranking-link{ margin-left:auto; }
   .card .hint b{ color: var(--text-secondary); }
   /* minimalist pulsing (!) info badge — replaces long caption paragraphs; click reveals a small popover */
   .info-wrap{ position:relative; display:inline-block; margin-left:8px; vertical-align:middle; }
@@ -304,6 +316,10 @@
     background-repeat:no-repeat; background-position:right 14px center; padding-right:36px;
   }
   select.editable-select option{ background:var(--surface-1); color:var(--text-primary); }
+  /* Coluna "% da captação": amarelo, porque é o único campo obrigatório dessa tela e começa vazio */
+  input.pct{ width:76px !important; background: rgba(250,178,25,0.14) !important; border-color: rgba(250,178,25,0.55) !important; }
+  input.pct:focus{ background: rgba(250,178,25,0.22) !important; border-color: var(--warning) !important; }
+  input.pct::placeholder{ color: rgba(250,178,25,0.6); }
   @media (max-width: 640px){
     body{ padding: 20px 14px 60px; }
     .card{ padding:18px; }
@@ -354,6 +370,7 @@
 <div class="wrap">
   <div class="eyebrow">
     <span class="dot"></span> MAESTRIA · CAMPANHA 2026
+    <a class="ranking-link" id="linkRankingTopo" target="_blank" rel="noopener" style="display:none;">Ranking oficial ↗</a>
   </div>
   <!-- =========================== HOME: boas-vindas (perfil+cluster numa tela só) + escolha do ranking =========================== -->
   <div class="screen active" id="screen-home">
@@ -433,7 +450,7 @@
     </div>
     <div class="wiz-step" data-step="captacao">
       <div class="card">
-        <h2>Quanto você pretende captar agora?<span class="req-mark">*</span></h2>
+        <h2 class="h2-lg">Quanto você pretende captar agora?<span class="req-mark">*</span></h2>
         <div class="fund-grid" id="a-fundGridPlano"></div>
       </div>
     </div>
@@ -446,11 +463,6 @@
         <div class="hero-position" id="a-posicaoWrap" style="display:none;">
           Se a campanha terminasse hoje, você estaria em <strong id="a-posicaoValor">–</strong>
         </div>
-      </div>
-      <div class="card">
-        <h2>Nem todo real vale o mesmo</h2>
-        <p class="hint" id="a-pesoCompareHint">Quanto os seus aportes valem em pontos, conforme o peso do fundo escolhido.</p>
-        <div class="compare" id="a-pesoCompareChart"></div>
       </div>
     </div>
     <div class="wiz-error" id="aumento-wizError"></div>
@@ -478,12 +490,16 @@
     <span id="v-vigenteWeekendTag" style="display:none;"></span>
     <div class="wiz-step" data-step="situacao">
       <div class="card">
-        <h2>Sua situação hoje</h2>
+        <h2 class="h2-lg">Sua situação hoje</h2>
         <div class="fund-grid" id="v-fundGridHoje"></div>
         <div class="stat-row">
           <div class="stat">
-            <div class="label">Sua alocação ponderada hoje</div>
+            <div class="label">PL total nos fundos</div>
             <div class="value" id="v-mediaAtualCalc">0</div>
+          </div>
+          <div class="stat">
+            <div class="label">Pontuação nos fundos hoje</div>
+            <div class="value" id="v-statPontuacaoHoje">0</div>
           </div>
           <div class="stat">
             <div class="label">Pontuação na última divulgação</div>
@@ -510,7 +526,7 @@
     </div>
     <div class="wiz-step" data-step="captacao">
       <div class="card">
-        <h2>Quanto pretende captar até o fim da campanha?<span class="req-mark">*</span></h2>
+        <h2 class="h2-lg">Quanto pretende captar até o fim da campanha?<span class="req-mark">*</span></h2>
         <div class="fund-grid" id="v-fundGridPlano"></div>
         <div class="stat-row compact">
           <div class="stat stat-amber">
@@ -518,7 +534,7 @@
             <div class="value" id="v-statCaptacaoTotal">0</div>
           </div>
           <div class="stat">
-            <div class="label">Sua alocação ponderada hoje</div>
+            <div class="label">PL total nos fundos</div>
             <div class="value" id="v-statAlocacaoHojeCaptacao">0</div>
           </div>
           <div class="stat">
@@ -530,7 +546,8 @@
     </div>
     <div class="wiz-step" data-step="distribuicao">
       <div class="card">
-        <h2>Como essa captação se distribui mês a mês<span class="req-mark">*</span></h2>
+        <h2 class="h2-lg">Como essa captação se distribui mês a mês<span class="req-mark">*</span></h2>
+        <p class="hint">Preencha o <b>% da captação</b> de cada mês aberto (campos em amarelo). A soma precisa fechar <b>100%</b> para avançar — a captação de cada mês entra na média no <b>último dia útil</b> daquele mês.</p>
         <div class="card-head-row">
           <span></span>
           <button type="button" class="btn-ghost" id="v-btnDistribuirIgual">Distribuir igualmente</button>
@@ -558,17 +575,19 @@
           Se a campanha terminasse hoje, você estaria em <strong id="v-posicaoValor">–</strong>
         </div>
       </div>
+      <div class="est-note" id="v-avisoBase" style="display:none;"></div>
       <div class="card">
         <h2>Evolução da pontuação mês a mês</h2>
         <div class="month-table-wrap">
           <table class="month-table" id="v-evolTable">
             <thead>
-              <tr><th>Mês</th><th>Pontuação antes do aporte</th><th>Pontuação no último dia útil</th><th>Dias com posição</th><th>Média acumulada até o fim do mês</th></tr>
+              <tr><th>Mês</th><th>Pontuação diária no mês</th><th>Pontuação diária após o aporte</th><th>Dias com posição</th><th>Média acumulada até o fim do mês</th></tr>
             </thead>
             <tbody id="v-evolRows"></tbody>
           </table>
         </div>
         <div class="scroll-hint">deslize para o lado para ver todas as colunas →</div>
+        <p class="hint" style="margin:16px 0 0;">A <b>pontuação diária</b> é o PL ponderado que você carrega em cada dia — não é média. A <b>média acumulada</b> é a soma dessas pontuações diárias dividida pelos dias com posição: como a pontuação diária só cresce quando entra captação, a média nunca cai a menos que haja resgate.</p>
       </div>
     </div>
     <div class="wiz-error" id="virtuose-wizError"></div>
@@ -650,6 +669,7 @@ async function carregarAssessorLogado(email){
         const valorPorAtivo = {};
         linhasAlocacao.forEach((l) => { valorPorAtivo[l.ativo] = l.valor; });
         FUNDOS.forEach((f, i) => {
+          if(!f.ativo) return;   // fundo ainda sem vínculo na base: preenchimento 100% manual
           if(valorPorAtivo[f.ativo] !== undefined){
             const input = document.querySelector(`#v-fundGridHoje .money[data-idx="${i}"]`);
             // só pré-preenche se o assessor ainda não digitou nada manualmente nesse fundo
@@ -716,6 +736,12 @@ if(emailSalvo){
 // Ordenado do MAIOR peso para o menor, de propósito: os fundos de maior peso aparecem primeiro em
 // toda grade, para induzir visualmente o assessor a captar neles primeiro.
 const FUNDOS = [
+  // "ativo" precisa ser EXATAMENTE a string de 'Base Diversificação'[Ativo] no Power BI — é por ela
+  // que o pré-preenchimento da alocação (buscar_alocacao_por_nome) casa cada fundo.
+  // ativo:null = fundo que ainda NÃO existe na base: o campo aparece na grade para o assessor
+  // digitar à mão, mas nada é puxado do Supabase. Quando o ARPEGGIO entrar na base, basta trocar
+  // null pelo nome exato do ativo (e incluí-lo na lista TREATAS do sync_pbi_to_supabase.ps1).
+  {name:"ARPEGGIO Renda+", ativo:null, peso:5},
   {name:"Cadenza Prev Icatu", ativo:"Icatu Cadenza Prev", peso:5},
   {name:"Avantgarde Absoluto FIM", ativo:"Avantgarde Multifatores Absoluto FIM", peso:5},
   {name:"Avantgarde Multifatores FIA", ativo:"Avantgarde Multifatores FIF FIA RL", peso:5},
@@ -729,6 +755,20 @@ const FUNDOS = [
   {name:"Tríade CIC Classes FIM CP (HY)", ativo:"Tríade CIC Classes FIM CP Resp Limitada", peso:2},
   {name:"Legato Liquidez Ref DI", ativo:"Legato Liquidez Classe Investimento RF Referenciada DI RL", peso:1},
 ];
+// ======================================================================
+// LINK DO RANKING OFICIAL (PDF ou Power BI publicado).
+// Coloque a URL aqui e o chip aparece no topo, ao lado de "MAESTRIA · CAMPANHA 2026",
+// em todas as telas (home + todos os passos dos dois rankings). Abre em nova aba.
+// Deixando vazio (''), o chip simplesmente não aparece — nada de link quebrado.
+// ======================================================================
+const LINK_RANKING_OFICIAL = '';
+(function aplicarLinkRanking(){
+  if(!LINK_RANKING_OFICIAL) return;
+  const chip = document.getElementById('linkRankingTopo');
+  if(!chip) return;
+  chip.href = LINK_RANKING_OFICIAL;
+  chip.style.display = 'inline-flex';
+})();
 // Faixas de PL por cluster (fonte: deck Maestria · Paramis/Oyster, base 15/07/2026)
 const CLUSTER_LIMITS = {
   assessor: { diamante:'acima de R$ 75M', ouro:'de R$ 25M a R$ 75M', prata:'até R$ 25M' },
@@ -891,7 +931,7 @@ function buildFundGrid(containerId, defaults, planoClass){
     row.innerHTML = `
       <div class="peso-badge peso-${f.peso}">${f.peso}×</div>
       <div class="fund-meta">
-        <div class="fund-name" title="${f.ativo}">${f.name}</div>
+        <div class="fund-name" title="${f.ativo || f.name}">${f.name}</div>
         <div class="fund-input-wrap">
           <input type="text" inputmode="numeric" class="money ${planoClass||''}" data-idx="${i}" value="${new Intl.NumberFormat('pt-BR').format(defaults[i]||0)}">
         </div>
@@ -1227,21 +1267,20 @@ function rebuildMonthRows(){
     tbody.innerHTML = `<tr><td colspan="6" class="empty-note">Nenhum mês entre a largada e o fim oficial da campanha.</td></tr>`;
     return;
   }
-  const abertos = segments.filter(s=>!s.locked).length;
-  const pctsIguais = equalSplitPercents(abertos);
-  let iAberto = 0;
   segments.forEach((seg)=>{
     const tr = document.createElement('tr');
     tr.dataset.key = seg.key;
     tr.dataset.locked = seg.locked ? 'true' : 'false';
     if(seg.locked) tr.classList.add('month-locked');
-    const pctValue = seg.locked ? 0 : pctsIguais[iAberto++];
+    // Vazio por padrão: a distribuição mês a mês é decisão do assessor (campo obrigatório).
+    // O botão "Distribuir igualmente" continua existindo pra quem quiser o atalho linear.
+    const pctValue = '';
     const labelHtml = seg.locked ? `${seg.label}<span class="locked-tag2">encerrado</span>` : seg.label;
     tr.innerHTML = `
       <td class="month-label">${labelHtml}</td>
       <td data-role="diasUteis">${seg.diasUteis}</td>
       <td data-role="posDias">–</td>
-      <td><input type="text" inputmode="decimal" class="pct" data-key="${seg.key}" value="${pctValue}" ${seg.locked?'disabled':''}></td>
+      <td><input type="text" inputmode="decimal" class="pct" data-key="${seg.key}" value="${pctValue}" placeholder="%" ${seg.locked?'disabled':''}></td>
       <td data-role="captacaoMes">${seg.locked?'–':'0'}</td>
       <td data-role="acumulado">${seg.locked?'–':'0'}</td>`;
     tbody.appendChild(tr);
@@ -1281,16 +1320,9 @@ function recomputeAumento(){
   } else {
     posARow.style.display = 'none';
   }
-  // Comparativo de pesos: incide SÓ sobre os aportes que o assessor pretende captar (não soma o
-  // aumento de PL já acumulado) — a leitura é "quanto os meus R$ X viram em pontos por peso".
-  const pesoItems = [1,2,3,4,5].map(p=>({label:'peso '+p+'×', value: captacaoTotal*p, color:'var(--violet)'}));
-  drawBars('a-pesoCompareChart', pesoItems, 140);
-  const hintEl = document.getElementById('a-pesoCompareHint');
-  if(hintEl){
-    hintEl.innerHTML = captacaoTotal>0
-      ? `Aporte planejado de <b>${brl(captacaoTotal)}</b> (valor sem peso). Abaixo, quanto esse mesmo aporte vale em pontuação em cada faixa de peso — o multiplicador incide apenas sobre os seus aportes, não sobre a pontuação que você já tem.`
-      : `Preencha os aportes no passo anterior para ver quanto eles valem em cada faixa de peso.`;
-  }
+  // O bloco "Nem todo real vale o mesmo" foi removido da tela de resultado a pedido do usuário —
+  // a tela agora mostra só o aumento de pontuação projetado. As funções drawBars/brl seguem no
+  // arquivo caso o comparativo volte no futuro.
   revalidateActiveStep('aumento');
 }
 // ================= CALC 2: Virtuose — Média Diária Ponderada =================
@@ -1311,37 +1343,39 @@ function recomputeVirtuose(){
   // da projeção dos meses futuros.
   const diasDecorridos = Math.max(parseNum(document.getElementById('v-diasDecorridos').value),0);
   const cadencia = (temDatasLinha && diasUteisDecorridos>0) ? diasDecorridos/diasUteisDecorridos : 0;
-  // "Sua alocação hoje" agora mostra o valor BRUTO (sem peso) do que está na grade — é só uma
-  // conferência visual do assessor, não entra mais em nenhuma conta. O "chão" da projeção futura
-  // passou a ser a pontuação na última divulgação (ver mais abaixo), não mais o valor de hoje —
-  // um único dia não deve carregar o peso de vários dias já divulgados.
+  // ================= O QUE É ESTOQUE E O QUE É MÉDIA =================
+  // O ranking Virtuose é a MÉDIA das pontuações DIÁRIAS. Cada dia tem uma pontuação (estoque):
+  // o PL ponderado que o assessor carrega naquele dia. A média é só a soma desses estoques
+  // dividida pelos dias com posição — exatamente como na planilha de referência
+  // (linha "PL de largada" = estoque diário; linha "Pontuação" = SOMA(estoques)/dias).
+  // Consequência: a média só cai se o estoque diário cair, isto é, se houver RESGATE.
+  //
+  // Antes, a projeção futura usava a MÉDIA publicada como nível diário — misturava média com
+  // estoque e fazia a projeção estacionar na média (mesmo sem resgate). Agora:
+  //   • dias já decorridos  -> soma = média publicada × dias que ela cobre (+ lacuna, ver abaixo)
+  //   • dias futuros        -> nível diário = pontuação nos fundos HOJE + captação acumulada
   const hojeVals = getFundValues('v-fundGridHoje');
   let plHojeBruto = 0, plHojePonderado = 0;
   hojeVals.forEach((v,i)=>{ plHojeBruto += v; plHojePonderado += v*FUNDOS[i].peso; });
   document.getElementById('v-mediaAtualCalc').textContent = pts(plHojeBruto);
-  const alocacaoCaptEl = document.getElementById('v-statAlocacaoHojeCaptacao'); // espelho no passo 2/3
+  const pontHojeEl = document.getElementById('v-statPontuacaoHoje');
+  if(pontHojeEl) pontHojeEl.textContent = pts(plHojePonderado);
+  const alocacaoCaptEl = document.getElementById('v-statAlocacaoHojeCaptacao'); // espelho no passo 2
   if(alocacaoCaptEl) alocacaoCaptEl.textContent = pts(plHojeBruto);
-  // Pontuação na última divulgação: vem pronta do backend (Power BI/Supabase), não é mais editável
-  // pelo assessor — por isso lemos o texto fixo do card em vez do valor de um input.
-  let mediaAtual = parseMoney(document.getElementById('v-plUltimaDivulgacao').textContent);
-  // Espelho no passo 2/3: mostra a pontuação na última divulgação (mais intuitivo pro assessor
-  // reconhecer o próprio número) — só de exibição. O empilhamento de captação usa essa mesma
-  // pontuação (já reconciliada com o "hoje" logo abaixo) como base, não mais o valor de hoje.
+  // Pontuação média já divulgada: vem pronta do backend (Power BI/Supabase), não é editável.
+  const mediaPublicada = parseMoney(document.getElementById('v-plUltimaDivulgacao').textContent);
   const plHojeCaptEl = document.getElementById('v-statPLHojeCaptacao');
-  if(plHojeCaptEl) plHojeCaptEl.textContent = pts(mediaAtual);
-  // Reconciliação: a pontuação acima só vale até a DATA daquela divulgação. Se hoje é depois dela,
-  // os dias entre as duas ainda não foram recalculados pelo BI — completamos essa lacuna usando a
-  // alocação de hoje PONDERADA (única informação que temos pra esses dias). Sem data preenchida,
-  // assumimos que a divulgação já é de hoje (comportamento antigo, sem lacuna). Isso é 100% backend —
-  // não aparece pro assessor em nenhum lugar da tela, só entra no cálculo final.
+  if(plHojeCaptEl) plHojeCaptEl.textContent = pts(mediaPublicada);
+  // Soma do passado. A média publicada cobre os dias até a DATA da divulgação; se hoje é depois
+  // dela, os dias no meio ainda não foram recalculados pelo BI — cobrimos essa lacuna com a
+  // pontuação de hoje (melhor proxy disponível). Sem data preenchida, assume-se que a divulgação
+  // já cobre até hoje.
+  let somaPassada = mediaPublicada * diasDecorridos;
   const dataDivulgacao = document.getElementById('v-dataUltimaDivulgacao').value;
   if(dataDivulgacao && dLargada && dataDivulgacao < dVigente){
-    const diasAteDivulgacao = Math.max(businessDaysInRange(dLargada, dataDivulgacao), 1);
-    const diaSeguinte = new Date(dataDivulgacao+'T00:00:00Z'); diaSeguinte.setUTCDate(diaSeguinte.getUTCDate()+1);
-    const diasLacuna = businessDaysInRange(diaSeguinte.toISOString().slice(0,10), dVigente);
-    if(diasLacuna > 0){
-      mediaAtual = (mediaAtual*diasAteDivulgacao + plHojePonderado*diasLacuna) / (diasAteDivulgacao+diasLacuna);
-    }
+    const diasAteDivulgacao = Math.min(Math.max(businessDaysInRange(dLargada, dataDivulgacao),1), diasDecorridos);
+    const diasLacuna = Math.max(diasDecorridos - diasAteDivulgacao, 0);
+    somaPassada = mediaPublicada*diasAteDivulgacao + plHojePonderado*diasLacuna;
   }
   // Captação total planejada (peso aplicado), a ser distribuída mês a mês
   const planoVals = getFundValues('v-fundGridPlano');
@@ -1357,7 +1391,7 @@ function recomputeVirtuose(){
   let cumCaptacao = 0, somaFuturo = 0;
   const evolBody = document.getElementById('v-evolRows');
   evolBody.innerHTML = '';
-  let cumDiasParaMedia = diasDecorridos, cumSomaParaMedia = mediaAtual*diasDecorridos;
+  let cumDiasParaMedia = diasDecorridos, cumSomaParaMedia = somaPassada;
   rows.forEach((tr,i)=>{
     const seg = segments[i];
     if(seg.locked){
@@ -1377,9 +1411,10 @@ function recomputeVirtuose(){
     diasRestantes += diasMes;
     // ---- Premissa do aporte: a captação do mês entra no ÚLTIMO DIA ÚTIL daquele mês ----
     const captacaoMes = captacaoTotal * (pct/100);
-    const nivelAntesAporte = mediaAtual + cumCaptacao;  // nível vigente até o dia anterior ao aporte
+    // Níveis são ESTOQUE (pontuação diária), não média: partem da pontuação nos fundos hoje.
+    const nivelAntesAporte = plHojePonderado + cumCaptacao;  // vigente até o dia anterior ao aporte
     cumCaptacao += captacaoMes;
-    const nivelAposAporte = mediaAtual + cumCaptacao;   // nível a partir do último dia útil do mês
+    const nivelAposAporte = plHojePonderado + cumCaptacao;   // a partir do último dia útil do mês
     const diasAntes = Math.max(diasMes - 1, 0);         // dias do mês antes do último dia útil
     const diasAporte = diasMes > 0 ? 1 : 0;             // o próprio último dia útil
     const somaMes = nivelAntesAporte*diasAntes + nivelAposAporte*diasAporte;
@@ -1389,7 +1424,7 @@ function recomputeVirtuose(){
     somaFuturo += somaMes;
     cumDiasParaMedia += diasMes;
     cumSomaParaMedia += somaMes;
-    const mediaAteEsseMes = cumDiasParaMedia>0 ? cumSomaParaMedia/cumDiasParaMedia : mediaAtual;
+    const mediaAteEsseMes = cumDiasParaMedia>0 ? cumSomaParaMedia/cumDiasParaMedia : mediaPublicada;
     const evolTr = document.createElement('tr');
     evolTr.innerHTML = `<td class="month-label">${seg.label}</td><td>${pts(nivelAntesAporte)}</td><td>${pts(nivelAposAporte)}</td><td>${diasMes}</td><td>${pts(mediaAteEsseMes)}</td>`;
     evolBody.appendChild(evolTr);
@@ -1411,13 +1446,28 @@ function recomputeVirtuose(){
   document.getElementById('v-statDiasRestantes').textContent = diasRestantes;
   const diasTotais = diasDecorridos + diasRestantes;
   document.getElementById('v-statDiasTotais').textContent = diasTotais;
-  const totalGeral = mediaAtual*diasDecorridos + somaFuturo;
-  const novaMedia = diasTotais>0 ? totalGeral/diasTotais : mediaAtual;
+  const totalGeral = somaPassada + somaFuturo;
+  const novaMedia = diasTotais>0 ? totalGeral/diasTotais : mediaPublicada;
   document.getElementById('v-heroValor').textContent = pts(novaMedia);
-  document.getElementById('v-heroSub').textContent = `Partindo de ${pts(mediaAtual)} pontos hoje, com mais ${diasRestantes} dias até o fim da campanha.`;
-  const deltaV = novaMedia - mediaAtual;
+  document.getElementById('v-heroSub').textContent = `Média já divulgada: ${pts(mediaPublicada)} em ${diasDecorridos} dias · pontuação nos fundos hoje: ${pts(plHojePonderado)} · mais ${diasRestantes} dias até o fim da campanha.`;
+  // Aviso quando a projeção cai: só acontece se a posição de hoje estiver ABAIXO da média já
+  // divulgada (resgate, ou alocação incompleta na tela 1). Sem clamp: mostramos o número real
+  // e explicamos a causa.
+  const avisoEl = document.getElementById('v-avisoBase');
+  if(avisoEl){
+    if(plHojePonderado === 0){
+      avisoEl.style.display = 'flex';
+      avisoEl.innerHTML = '<span>⚠</span><span>A <b>pontuação nos fundos hoje</b> está zerada — sem ela não há base para projetar os dias futuros. Confira a alocação na primeira tela.</span>';
+    } else if(plHojePonderado < mediaPublicada){
+      avisoEl.style.display = 'flex';
+      avisoEl.innerHTML = `<span>⚠</span><span>Sua pontuação nos fundos hoje (<b>${pts(plHojePonderado)}</b>) está <b>abaixo</b> da média já divulgada (<b>${pts(mediaPublicada)}</b>). Mantendo essa posição, a média cai a cada dia que passa — é isso que a projeção mostra. Se não houve resgate, confira se a alocação da primeira tela está completa.</span>`;
+    } else {
+      avisoEl.style.display = 'none';
+    }
+  }
+  const deltaV = novaMedia - mediaPublicada;
   const deltaVEl = document.getElementById('v-heroDelta');
-  deltaVEl.textContent = `${deltaV>=0?'▲':'▼'} ${pts(Math.abs(deltaV))} em relação à sua pontuação atual`;
+  deltaVEl.textContent = `${deltaV>=0?'▲':'▼'} ${pts(Math.abs(deltaV))} em relação à média já divulgada`;
   deltaVEl.className = 'hero-delta ' + (deltaV>=0?'up':'down');
   // Se a campanha terminasse hoje: minha pontuação projetada vs. o snapshot congelado dos demais
   // competidores do mesmo perfil+cluster.
@@ -1448,6 +1498,22 @@ initAutoDates();
 rebuildMonthRows();
 recomputeAll();
 showScreen('home');
+// Data-base da última divulgação: usada só para fechar a lacuna entre a média publicada e hoje
+// (ver recomputeVirtuose). Falha silenciosa — sem essa data, o cálculo assume que a média já
+// cobre até hoje, que era o comportamento anterior.
+(function carregarDataBaseDivulgacao(){
+  fetch(`${SUPABASE_URL}/rest/v1/historico_pl_ponderado?select=data_posicao&order=data_posicao.desc&limit=1`, {
+    headers: { apikey: SUPABASE_PUBLISHABLE_KEY, Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}` },
+  })
+    .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
+    .then((linhas) => {
+      if(Array.isArray(linhas) && linhas.length && linhas[0].data_posicao){
+        document.getElementById('v-dataUltimaDivulgacao').value = String(linhas[0].data_posicao).slice(0,10);
+        recomputeAll();
+      }
+    })
+    .catch(() => {});
+})();
 </script>
 </body>
 </html>
