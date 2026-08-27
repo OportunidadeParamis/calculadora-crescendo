@@ -1433,7 +1433,7 @@ function recomputeVirtuose(){
   const totalGeral = somaPassada + somaFuturo;
   const novaMedia = diasTotais>0 ? totalGeral/diasTotais : mediaPublicada;
   document.getElementById('v-heroValor').textContent = pts(novaMedia);
-  document.getElementById('v-heroSub').textContent = `Média já divulgada: ${pts(mediaPublicada)} pontos em ${diasDecorridos} dias, com mais ${diasRestantes} dias até o fim da campanha.`;
+  document.getElementById('v-heroSub').textContent = `Pontuação Divulgada: ${pts(mediaPublicada)} pontos em ${diasDecorridos} dias, com mais ${diasRestantes} dias até o fim da campanha.`;
   const deltaV = novaMedia - mediaPublicada;
   const deltaVEl = document.getElementById('v-heroDelta');
   deltaVEl.textContent = `${deltaV>=0?'▲':'▼'} ${pts(Math.abs(deltaV))} em relação à média já divulgada`;
