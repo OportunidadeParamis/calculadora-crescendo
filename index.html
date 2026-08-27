@@ -458,7 +458,7 @@
     </div>
     <div class="wiz-step" data-step="resultado">
       <div class="hero-card">
-        <div class="hero-label">Aumento de pontuação projetado</div>
+        <div class="hero-label">Pontuação Projetada</div>
         <div class="hero-value" id="a-heroValor">0</div>
         <div class="hero-sub" id="a-heroSub">Aumento atual: 0 + captação ponderada: 0</div>
         <div class="hero-delta" id="a-heroDelta"></div>
@@ -565,7 +565,7 @@
     </div>
     <div class="wiz-step" data-step="resultado">
       <div class="hero-card">
-        <div class="hero-label">Pontuação média diária projetada</div>
+        <div class="hero-label" style="font-size:16px;">Pontuação Projetada</div>
         <div class="hero-value" id="v-heroValor">0</div>
         <div class="hero-sub" id="v-heroSub">–</div>
         <div class="hero-delta" id="v-heroDelta"></div>
@@ -578,13 +578,12 @@
         <div class="month-table-wrap">
           <table class="month-table" id="v-evolTable">
             <thead>
-              <tr><th>Mês</th><th>Pontuação diária no mês</th><th>Pontuação diária após o aporte</th><th>Dias com posição</th><th>Média acumulada até o fim do mês</th></tr>
+              <tr><th>Mês</th><th>Pontuação antes do aporte</th><th>Pontuação após o aporte</th><th>Dias úteis no mês</th><th>Média acumulada no fim do mês</th></tr>
             </thead>
             <tbody id="v-evolRows"></tbody>
           </table>
         </div>
         <div class="scroll-hint">deslize para o lado para ver todas as colunas →</div>
-        <p class="hint" style="margin:16px 0 0;">A <b>pontuação diária</b> é o PL ponderado que você carrega em cada dia — não é média. A <b>média acumulada</b> é a soma dessas pontuações diárias dividida pelos dias com posição: como a pontuação diária só cresce quando entra captação, a média nunca cai a menos que haja resgate.</p>
       </div>
     </div>
     <div class="wiz-error" id="virtuose-wizError"></div>
