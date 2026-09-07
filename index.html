@@ -141,29 +141,32 @@
   .ranking-link:hover{ background:rgba(144,133,233,0.20); color:var(--text-primary); }
   .eyebrow .ranking-link{ margin-left:auto; }
   .card .hint b{ color: var(--text-secondary); }
-  /* Card "consultar ranking": atalho para o assessor descobrir a própria pontuação de largada
-     sem sair da calculadora. Só aparece quando LINK_RANKING_LARGADA está preenchido E o
-     perfil/cluster já foram escolhidos — senão não há para onde apontar. */
-  a.ranking-link-card{
-    display:flex; align-items:center; gap:14px; text-decoration:none;
-    background: linear-gradient(160deg, rgba(144,133,233,0.10) 0%, rgba(144,133,233,0.04) 100%);
-    border:1px solid rgba(144,133,233,0.35); border-radius:14px; padding:14px 16px;
-    margin:0 10px 10px; transition: border-color .15s ease, transform .15s ease, background .15s ease;
+  /* Link "ver ranking": mora DENTRO do campo que ele ajuda a preencher, logo abaixo do input.
+     Antes eram dois cards largos empilhados sob os dois campos — a associação entre link e
+     campo dependia da ordem de leitura, não da posição, e o bloco ocupava duas faixas inteiras
+     da tela. Aqui cada link fica colado no seu campo e some da hierarquia visual: quem já sabe
+     a própria pontuação simplesmente não repara nele.
+     Só aparece quando a constante do link está preenchida E perfil/cluster já foram escolhidos. */
+  a.ranking-inline{
+    align-self:flex-start; width:fit-content; max-width:100%;
+    display:inline-flex; align-items:center; gap:8px; margin-top:12px;
+    text-decoration:none; font-family:inherit; font-size:12.5px; font-weight:600;
+    color:var(--violet); cursor:pointer;
+    transition: color .15s ease;
   }
-  a.ranking-link-card:hover{ border-color:var(--violet); transform:translateY(-1px); background: rgba(144,133,233,0.14); }
-  .ranking-link-card .rc-icon{
-    flex:0 0 auto; width:38px; height:38px; border-radius:11px; display:flex; align-items:center; justify-content:center;
-    background: rgba(144,133,233,0.18); font-size:19px;
+  .ranking-inline .ri-icon{
+    flex:0 0 auto; width:22px; height:22px; border-radius:7px;
+    display:inline-flex; align-items:center; justify-content:center;
+    background:rgba(144,133,233,0.16); color:var(--violet); font-size:12px; font-weight:800;
+    transition: background .15s ease, transform .15s ease;
   }
-  .ranking-link-card .rc-body{ flex:1 1 auto; min-width:0; }
-  .ranking-link-card .rc-title{ display:block; font-size:14px; font-weight:700; color:var(--text-primary); }
-  .ranking-link-card .rc-sub{ display:block; font-size:12.5px; color:var(--text-muted); margin-top:2px; }
-  .ranking-link-card .rc-sub b{ color:var(--violet); font-weight:700; }
-  a.ranking-link-card.rc-last{ margin-bottom:20px; }
-  .ranking-link-card .rc-go{ flex:0 0 auto; font-size:18px; color:var(--violet); font-weight:700; }
+  .ranking-inline .ri-text{ border-bottom:1px solid transparent; transition: border-color .15s ease; }
+  a.ranking-inline:hover{ color:#cfc9ff; }
+  a.ranking-inline:hover .ri-icon{ background:rgba(144,133,233,0.32); transform:translate(1px,-1px); }
+  a.ranking-inline:hover .ri-text{ border-bottom-color:currentColor; }
+  a.ranking-inline:focus-visible{ outline:2px solid var(--violet); outline-offset:3px; border-radius:4px; }
   @media (max-width: 640px){
-    a.ranking-link-card{ margin-left:4px; margin-right:4px; padding:12px 14px; }
-    .ranking-link-card .rc-title{ font-size:13px; }
+    a.ranking-inline{ font-size:12px; margin-top:10px; }
   }
   /* minimalist pulsing (!) info badge — replaces long caption paragraphs; click reveals a small popover */
   .info-wrap{ position:relative; display:inline-block; margin-left:8px; vertical-align:middle; }
@@ -459,10 +462,16 @@
           <div class="field">
             <label>Pontuação na largada<span class="req-mark">*</span></label>
             <input type="text" inputmode="numeric" class="big-number" id="a-plLargada" value="" placeholder="digite aqui">
+            <a class="ranking-inline" id="a-rankingCard-largada" target="_blank" rel="noopener" style="display:none;">
+              <span class="ri-icon">↗</span><span class="ri-text">Veja sua pontuação na largada</span>
+            </a>
           </div>
           <div class="field">
             <label>Pontuação na última divulgação<span class="req-mark">*</span></label>
             <input type="text" inputmode="numeric" class="big-number" id="a-plHoje" value="" placeholder="digite aqui">
+            <a class="ranking-inline" id="a-rankingCard-recente" target="_blank" rel="noopener" style="display:none;">
+              <span class="ri-icon">↗</span><span class="ri-text">Veja sua pontuação na última divulgação</span>
+            </a>
           </div>
         </div>
         <div class="stat-row">
@@ -472,22 +481,6 @@
           </div>
         </div>
       </div>
-      <a class="ranking-link-card" id="a-rankingCard-largada" target="_blank" rel="noopener" style="display:none;">
-        <span class="rc-icon">🏁</span>
-        <span class="rc-body">
-          <span class="rc-title">Não sabe sua pontuação na largada?</span>
-          <span class="rc-sub">Abrir a divulgação de 03/08 — <b data-rc-grupo></b></span>
-        </span>
-        <span class="rc-go">↗</span>
-      </a>
-      <a class="ranking-link-card rc-last" id="a-rankingCard-recente" target="_blank" rel="noopener" style="display:none;">
-        <span class="rc-icon">📈</span>
-        <span class="rc-body">
-          <span class="rc-title">Não sabe sua pontuação na última divulgação?</span>
-          <span class="rc-sub">Abrir a divulgação mais recente — <b data-rc-grupo></b></span>
-        </span>
-        <span class="rc-go">↗</span>
-      </a>
     </div>
     <div class="wiz-step" data-step="captacao">
       <div class="card">
@@ -539,29 +532,19 @@
           <div class="stat stat-amber stat-wide">
             <div class="label">Pontuação na largada<span class="req-mark">*</span></div>
             <div class="value"><input type="text" inputmode="numeric" class="manual-field" id="v-pontLargada" value="" placeholder="digite aqui"></div>
+            <a class="ranking-inline" id="v-rankingCard-largada" target="_blank" rel="noopener" style="display:none;">
+              <span class="ri-icon">↗</span><span class="ri-text">Veja sua pontuação na largada</span>
+            </a>
           </div>
           <div class="stat stat-amber stat-wide">
             <div class="label">Pontuação na última divulgação<span class="req-mark">*</span></div>
             <div class="value"><input type="text" inputmode="numeric" class="manual-field" id="v-plUltimaDivulgacao" value="" placeholder="digite aqui"></div>
+            <a class="ranking-inline" id="v-rankingCard-recente" target="_blank" rel="noopener" style="display:none;">
+              <span class="ri-icon">↗</span><span class="ri-text">Veja sua pontuação na última divulgação</span>
+            </a>
           </div>
         </div>
       </div>
-      <a class="ranking-link-card" id="v-rankingCard-largada" target="_blank" rel="noopener" style="display:none;">
-        <span class="rc-icon">🏁</span>
-        <span class="rc-body">
-          <span class="rc-title">Não sabe sua pontuação na largada?</span>
-          <span class="rc-sub">Abrir a divulgação de 03/08 — <b data-rc-grupo></b></span>
-        </span>
-        <span class="rc-go">↗</span>
-      </a>
-      <a class="ranking-link-card rc-last" id="v-rankingCard-recente" target="_blank" rel="noopener" style="display:none;">
-        <span class="rc-icon">📈</span>
-        <span class="rc-body">
-          <span class="rc-title">Não sabe sua pontuação na última divulgação?</span>
-          <span class="rc-sub">Abrir a divulgação mais recente — <b data-rc-grupo></b></span>
-        </span>
-        <span class="rc-go">↗</span>
-      </a>
       <div class="card">
         <h2 class="h2-lg">Quanto pretende captar até o fim da campanha?<span class="req-mark">*</span></h2>
         <div class="fund-grid" id="v-fundGridPlano"></div>
@@ -714,9 +697,12 @@ function aplicarLinkLargada(){
       cat: RANKING_CAT[cluster],
     });
     card.href = base + (base.includes('?') ? '&' : '?') + p.toString();
-    card.querySelector('[data-rc-grupo]').textContent =
-      `${RANKING_CAMPANHA[ranking]} · ${RANKING_TIPO[perfil]} ${RANKING_CAT[cluster]}`;
-    card.style.display = 'flex';
+    // O recorte de destino vai no tooltip, não na tela: o assessor acabou de escolher perfil e
+    // cluster duas telas atrás, então repetir isso em cada link só polui. Fica disponível para
+    // quem passar o mouse e quiser conferir antes de clicar.
+    card.title = `Abre o ranking ${RANKING_CAMPANHA[ranking]} · ${RANKING_TIPO[perfil]} ${RANKING_CAT[cluster]}`
+               + (papel === 'largada' ? ' — divulgação de 03/08' : ' — divulgação mais recente');
+    card.style.display = 'inline-flex';
   });
 }
 (function aplicarLinkRanking(){
@@ -801,47 +787,76 @@ const RANKING_SNAPSHOT = {
     },
   },
 };
-// Credenciais no escopo do script: são usadas por mais de um fetch (o sync do ranking abaixo e o
-// carregarDataBaseDivulgacao lá no fim do arquivo). Estavam declaradas dentro da IIFE do sync, o
-// que fazia o segundo fetch estourar "SUPABASE_URL is not defined" a cada carregamento da página.
+// Credenciais no escopo do script: usadas pelo carregarDataBaseDivulgacao lá no fim do arquivo.
 const SUPABASE_URL = 'https://wtswqdsjgfxtjqljrrhv.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_chRmK_sSPKoPpJZiSJutGA_vHTs35Hv';
-(function atualizarRankingVirtuoseAssessor(){
-  fetch(`${SUPABASE_URL}/rest/v1/ranking_snapshot?select=pl_medio_diario_ponderado,categoria,sincronizado_em`, {
-    headers: {
-      apikey: SUPABASE_PUBLISHABLE_KEY,
-      Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
-    },
-  })
-    .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
-    .then((linhas) => {
-      if (!Array.isArray(linhas) || !linhas.length) return;
-      const porCluster = { diamante: [], ouro: [], prata: [] };
-      let maisRecente = null;
-      linhas.forEach((linha) => {
-        const chave = (linha.categoria || '').trim().toLowerCase();
-        if (porCluster[chave] && typeof linha.pl_medio_diario_ponderado === 'number') {
-          porCluster[chave].push(linha.pl_medio_diario_ponderado);
-        }
-        if (linha.sincronizado_em && (!maisRecente || linha.sincronizado_em > maisRecente)) {
-          maisRecente = linha.sincronizado_em;
-        }
+// ======================================================================
+// DE ONDE VEM A POSIÇÃO PROJETADA
+// ======================================================================
+// O RANKING_SNAPSHOT acima é uma FOTO congelada de 26/08. Sozinho, ele faz a tela envelhecer em
+// silêncio: passadas algumas divulgações, o assessor continuaria vendo "6º de 80" calculado contra
+// concorrentes de semanas atrás, sem nada na tela indicando que o número está velho.
+//
+// Então a fonte de verdade passa a ser a própria página do ranking (LINK_RANKING_RECENTE) — o
+// mesmo arquivo que o assessor abre pelo link. Ela já traz as 12 combinações (2 campanhas ×
+// 2 perfis × 3 clusters) num bloco JSON, com pontuação e com o Rank de classificação. Ler dali
+// tem três consequências boas: cobre tudo (o sync antigo só atualizava Virtuose/Assessor), a
+// posição acompanha a divulgação automaticamente, e calculadora e ranking nunca divergem, porque
+// leem exatamente o mesmo arquivo.
+//
+// Se o fetch falhar — abrindo o index.html direto do disco (file:// bloqueia fetch), sem rede, ou
+// arquivo ausente —, o snapshot embutido continua valendo e a calculadora funciona normalmente,
+// só com a foto antiga. É degradação silenciosa de propósito: melhor um número defasado do que
+// uma tela quebrada.
+(function carregarRankingDaDivulgacao(){
+  if(!LINK_RANKING_RECENTE) return;
+  // De/para entre os rótulos usados na página de ranking e as chaves internas da calculadora.
+  const CAMPANHA = { Crescendo:'aumento', Virtuose:'virtuose' };
+  const TIPO     = { Assessor:'assessor', Filiais:'filial' };
+  const CAT      = { Diamante:'diamante', Ouro:'ouro', Prata:'prata' };
+  // "165.022.121" e "-2.080" chegam como texto no formato pt-BR. Só dígitos e sinal interessam:
+  // o separador de milhar é ponto e não há casa decimal nessas colunas.
+  const paraNumero = (txt) => {
+    const n = parseInt(String(txt == null ? '' : txt).replace(/[^\d-]/g, ''), 10);
+    return isNaN(n) ? null : n;
+  };
+  fetch(LINK_RANKING_RECENTE, { cache: 'no-cache' })
+    .then((r) => (r.ok ? r.text() : Promise.reject(r.status)))
+    .then((html) => {
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+      const bloco = doc.getElementById('mst-data');
+      if(!bloco) return Promise.reject('bloco mst-data não encontrado');
+      const dados = JSON.parse(bloco.textContent);
+      let combinacoes = 0;
+      Object.keys(dados).forEach((chave) => {
+        const [camp, tipo, cat] = chave.split('_');
+        const rk = CAMPANHA[camp], pf = TIPO[tipo], cl = CAT[cat];
+        if(!rk || !pf || !cl || !Array.isArray(dados[chave])) return;
+        const linhas = dados[chave];
+        const todos = linhas.map((l) => paraNumero(l.pontuacao)).filter((n) => n !== null);
+        if(!todos.length) return;
+        todos.sort((a, b) => b - a);
+        // classif = quem entra no ranking de classificação. Na página, isso é exatamente quem tem
+        // rank_tier preenchido (no Power BI, o RANKX filtrado por "pontuação >= própria largada").
+        // No Crescendo a coluna não existe, e a tela também não usa classif ali.
+        const classif = linhas
+          .filter((l) => l.rank_tier !== null && l.rank_tier !== undefined && l.rank_tier !== '')
+          .map((l) => paraNumero(l.pontuacao))
+          .filter((n) => n !== null)
+          .sort((a, b) => b - a);
+        RANKING_SNAPSHOT[rk] = RANKING_SNAPSHOT[rk] || {};
+        RANKING_SNAPSHOT[rk][pf] = RANKING_SNAPSHOT[rk][pf] || {};
+        RANKING_SNAPSHOT[rk][pf][cl] = classif.length ? { todos, classif } : { todos };
+        combinacoes++;
       });
-      // O endpoint devolve só a pontuação, não a Pontuação de Largada de cada assessor — então dá
-      // pra refrescar "todos" (a coluna Posição), mas não "classif" (a coluna Rank, que depende de
-      // comparar cada um com a própria largada). Enquanto a largada não vier junto, classif segue
-      // com a foto embutida acima.
-      Object.keys(porCluster).forEach((k) => {
-        if(!porCluster[k].length) return;
-        porCluster[k].sort((a, b) => b - a);
-        RANKING_SNAPSHOT.virtuose.assessor[k].todos = porCluster[k];
-      });
-      if (maisRecente) {
-        RANKING_SNAPSHOT_DATE = new Date(maisRecente).toLocaleDateString('pt-BR');
-      }
+      if(!combinacoes) return Promise.reject('nenhuma combinação reconhecida');
+      // A base da divulgação está no texto do script da página ("Ranking Mensal — Base 26.08.2026").
+      const base = html.match(/Base (\d{2})\.(\d{2})\.(\d{4})/);
+      if(base) RANKING_SNAPSHOT_DATE = `${base[1]}/${base[2]}/${base[3]}`;
+      recomputeAll(); // a tela já pode estar mostrando uma posição calculada com a foto antiga
     })
     .catch(() => {
-      /* mantém o snapshot congelado embutido acima — nenhuma ação necessária */
+      /* mantém o snapshot embutido — nenhuma ação necessária */
     });
 })();
 // "Se só eu pontuasse e todo mundo mais ficasse parado, em que posição eu estaria hoje" — insere a
